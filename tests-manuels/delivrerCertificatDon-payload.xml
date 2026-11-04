@@ -1,0 +1,9 @@
+<tns:delivrerCertificatDonRequest
+    xmlns:tns="http://iit.tn/soa/cnts">
+    <tns:donIdLocal>DON-DEMO-001</tns:donIdLocal>
+    <tns:numeroDonNational>DN-2026-000001</tns:numeroDonNational>
+    <tns:donneurRef>donneur-ref-42</tns:donneurRef>
+    <tns:centreId>CRTS-SFAX</tns:centreId>
+    <tns:dateDon>2026-11-04</tns:dateDon>
+</tns:delivrerCertificatDonRequest>
+
