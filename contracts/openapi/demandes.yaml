@@ -1,0 +1,13 @@
+POST /api/v1/demandes
+GET /api/v1/demandes
+GET /api/v1/demandes/{id}
+PATCH /api/v1/demandes/{id}
+
+POST /api/v1/demandes/{id}/compensations
+
+POST /api/v1/appels
+GET /api/v1/appels
+PATCH /api/v1/appels/{id}
+
+GET /api/v1/stock/niveaux
+GET /api/v1/stock/niveaux/flux
