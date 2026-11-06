@@ -1,0 +1,226 @@
+syntax = "proto3";
+
+package donstock.v1;
+
+option java_package = "com.donstock.v1";
+option java_multiple_files = true;
+
+// --- Enums ---
+
+// Represents the 8 main human blood groups.
+enum BloodGroup {
+  BLOOD_GROUP_UNSPECIFIED = 0; // Default fallback value
+  BLOOD_GROUP_A_POSITIVE = 1;
+  BLOOD_GROUP_A_NEGATIVE = 2;
+  BLOOD_GROUP_B_POSITIVE = 3;
+  BLOOD_GROUP_B_NEGATIVE = 4;
+  BLOOD_GROUP_AB_POSITIVE = 5;
+  BLOOD_GROUP_AB_NEGATIVE = 6;
+  BLOOD_GROUP_O_POSITIVE = 7;
+  BLOOD_GROUP_O_NEGATIVE = 8;
+}
+
+// Type of blood component laboratory product.
+enum Component {
+  COMPONENT_UNSPECIFIED = 0; // Default fallback value
+  COMPONENT_CGR = 1;         // Concentré de Globules Rouges (Packed Red Blood Cells)
+  COMPONENT_PLASMA = 2;      // Plasma
+  COMPONENT_PLAQUETTES = 3;  // Plaquettes (Platelets)
+}
+
+// Level of clinical urgency for the reservation request.
+enum Urgency {
+  URGENCY_UNSPECIFIED = 0; // Default fallback value
+  URGENCY_LOW = 1;
+  URGENCY_MEDIUM = 2;
+  URGENCY_HIGH = 3;
+}
+
+// Current status tracking a matching or allocation request.
+enum ReservationStatus {
+  RESERVATION_STATUS_UNSPECIFIED = 0; // Default fallback value
+  RESERVATION_STATUS_RESERVEE_STOCK_LOCAL = 1;
+  RESERVATION_STATUS_APPROVISIONNEMENT_COMMANDE = 2;
+  RESERVATION_STATUS_STOCK_INSUFFISANT_PARTOUT = 3;
+  RESERVATION_STATUS_LIVREE = 4;                   // Gap 4 feature
+  RESERVATION_STATUS_EN_ATTENTE_CONFIRMATION = 5;  // Gap 4 feature
+}
+
+// Categorized safety status of stock volumes.
+enum Level {
+  LEVEL_UNSPECIFIED = 0; // Default fallback value
+  LEVEL_BAS = 1;         // Low stock alert level
+  LEVEL_MOYEN = 2;       // Stable inventory level
+  LEVEL_HAUT = 3;        // Optimal/High inventory level
+}
+
+// --- Service ---
+
+service DonStockService {
+  // Verifies stock availability and creates a reservation.
+  // Returns:
+  //   - INVALID_ARGUMENT (3): if invalid parameters or missing required IDs are passed
+  //   - RESOURCE_EXHAUSTED (8): if allocations fail due to physical system limits
+  rpc VerifierEtReserver (VerifierEtReserverRequest) returns (VerifierEtReserverResponse);
+
+  // Retrieves detail info of an existing reservation.
+  // Returns:
+  //   - NOT_FOUND (5): if the given reservation_id does not exist
+  //   - INVALID_ARGUMENT (3): if tracking ID validation fails
+  rpc ConsulterReservation (ConsulterReservationRequest) returns (ConsulterReservationResponse);
+
+  // Logs a new blood collection activity into the main registry.
+  // Returns:
+  //   - INVALID_ARGUMENT (3): if format validation checks fail
+  //   - ALREADY_EXISTS (6): if the collection context or idempotency key is already tracked
+  rpc EnregistrerPrelevement (EnregistrerPrelevementRequest) returns (EnregistrerPrelevementResponse);
+
+  // Generates and provides an official digital donation certificate summary.
+  // Returns:
+  //   - NOT_FOUND (5): if donor_id or prelevement_id mismatch records
+  //   - INVALID_ARGUMENT (3): if validation checks fail
+  rpc DelivrerCertificat (DelivrerCertificatRequest) returns (DelivrerCertificatResponse);
+
+  // Server streaming RPC providing reactive inventory tracking updates.
+  // Returns:
+  //   - INVALID_ARGUMENT (3): if filter rules are structured incorrectly
+  rpc SuivreNiveauxStock (SuivreNiveauxStockRequest) returns (stream SuivreNiveauxStockResponse);
+}
+
+// --- Messages ---
+
+message VerifierEtReserverRequest {
+  // Unique idempotency key tracking this verification and booking request event.
+  string demande_id = 1;
+  
+  // Target blood group required.
+  BloodGroup blood_group = 2;
+  
+  // Specific type of blood component requested.
+  Component component = 3;
+  
+  // Number of units required.
+  int32 quantity = 4;
+  
+  // Priority status of the reservation request.
+  Urgency urgency = 5;
+  
+  // Unique identification reference for the patient.
+  string patient_id = 6;
+}
+
+message VerifierEtReserverResponse {
+  // Unique system tracking reference assigned to the successful/pending reservation.
+  string reservation_id = 1;
+  
+  // Current transactional lifecycle state of the reservation.
+  ReservationStatus status = 2;
+  
+  // Expected timeframe text indicating when components will be fully ready.
+  string estimated_delivery_time = 3; 
+}
+
+message ConsulterReservationRequest {
+  // Targeted reservation identifier to look up.
+  string reservation_id = 1;
+}
+
+message ConsulterReservationResponse {
+  // Unique system tracking reference assigned to the reservation.
+  string reservation_id = 1;
+  
+  // Blood group allocated or requested.
+  BloodGroup blood_group = 2;
+  
+  // Blood component type allocated or requested.
+  Component component = 3;
+  
+  // Total item count locked by the request.
+  int32 quantity = 4;
+  
+  // Transactional lifecycle state matching this target reservation.
+  ReservationStatus status = 5;
+}
+
+message EnregistrerPrelevementRequest {
+  // Unique idempotency key tracking this particular donation event.
+  string don_id = 1;
+
+  // Internal user record tracking ID of the corresponding donor entity.
+  string donor_id = 2;
+  
+  // Primary blood type determined for the specific collection.
+  BloodGroup blood_group = 3;
+  
+  // Derived product type extracted from the collection.
+  Component component = 4;
+  
+  // Measured aggregate fluid volume registered in milliliters.
+  int32 volume_ml = 5;
+  
+  // Timestamp string recording when extraction occurred.
+  string prelevement_date = 6;
+}
+
+message EnregistrerPrelevementResponse {
+  // System tracking reference generated for this individual valid extraction record.
+  string prelevement_id = 1;
+  
+  // Status flag reporting processing result outcome.
+  bool success = 2;
+  
+  // Human readable informational status text detailing response outcomes or failures.
+  string message = 3;
+}
+
+message DelivrerCertificatRequest {
+  // Targeted reference id representing the validated donor profile.
+  string donor_id = 1;
+  
+  // Targeted reference id representing the related successfully processed donation event.
+  string prelevement_id = 2;
+}
+
+message DelivrerCertificatResponse {
+  // Unique tracking checksum reference generated for this official document asset.
+  string certificate_id = 1;
+  
+  // Official registered identity text matching the verified donor.
+  string donor_name = 2;
+  
+  // Timestamp string reporting when this official copy was printed/rendered.
+  string issue_date = 3;
+  
+  // Structured descriptive body statement detailing metadata inside the certificate.
+  string certificate_content = 4;
+}
+
+message SuivreNiveauxStockRequest {
+  // Optional criteria allowing real-time tracking streams to limit output to specific blood types.
+  repeated BloodGroup filter_blood_groups = 1;
+  
+  // Optional criteria allowing real-time tracking streams to limit output to specific product types.
+  repeated Component filter_components = 2;
+}
+
+message StockLevelUpdate {
+  // Evaluated target item group.
+  BloodGroup blood_group = 1;
+  
+  // Evaluated target item component.
+  Component component = 2;
+  
+  // Exact count of verified available units in inventory.
+  int32 current_quantity = 3;
+  
+  // Discovered risk category indicating current safety margins.
+  Level level = 4;
+}
+
+message SuivreNiveauxStockResponse {
+  // Set of current status updates indicating current unit levels across categories.
+  repeated StockLevelUpdate updates = 1;
+  
+  // System timestamp string marking when this message package payload was dispatched.
+  string timestamp = 2;
+}
