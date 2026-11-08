@@ -1,0 +1,672 @@
+openapi: 3.0.3
+info:
+  title: service-donneurs API
+  version: 1.0.0
+  description: 'REST API of `service-donneurs` (port 8081), following study section 6.1 (v2.1). Donors, eligibility, deferrals, centres,
+    slots, appointments, the 4-step donation visit and the donation certificate. Business rules R1 to R27: study section 9.'
+  license: {name: Apache 2.0, url: 'https://www.apache.org/licenses/LICENSE-2.0.html'}
+servers:
+- {url: 'http://localhost:8081', description: service-donneurs (direct access)}
+- {url: 'http://localhost:8080', description: Gateway}
+security: []
+tags:
+- {name: Donneurs, description: 'Donors, eligibility and deferrals'}
+- {name: Centres, description: Centres and their slots}
+- {name: Rendez-vous, description: Appointments from home or at the centre}
+- {name: Dons, description: The 4-step donation visit}
+- {name: Certificats, description: Donation certificate and its verification}
+paths:
+  /api/v1/donneurs:
+    post:
+      tags: [Donneurs]
+      operationId: creerDonneur
+      summary: Register a donor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DonneurRequest'}
+      responses:
+        '201':
+          description: Donor created
+          headers:
+            Location:
+              description: URL of the new donor
+              schema: {type: string, example: /api/v1/donneurs/1}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Donneur'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    get:
+      tags: [Donneurs]
+      operationId: rechercherDonneurs
+      summary: Search donors by blood group and city, with pagination
+      parameters:
+      - name: groupe
+        in: query
+        schema: {$ref: '#/components/schemas/GroupeSanguin'}
+      - name: ville
+        in: query
+        schema: {type: string, example: Sfax}
+      - {$ref: '#/components/parameters/Page'}
+      - {$ref: '#/components/parameters/Size'}
+      responses:
+        '200':
+          description: A page of donors
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PageDonneur'}
+  /api/v1/donneurs/{id}:
+    parameters:
+    - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Donneurs]
+      operationId: lireDonneur
+      summary: Read a donor
+      responses:
+        '200':
+          description: The donor
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Donneur'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      tags: [Donneurs]
+      operationId: modifierDonneur
+      summary: Replace the data of a donor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DonneurRequest'}
+      responses:
+        '200':
+          description: Donor updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Donneur'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Donneurs]
+      operationId: supprimerDonneur
+      summary: Delete a donor
+      responses:
+        '204': {description: Donor deleted}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/donneurs/{id}/eligibilite:
+    get:
+      tags: [Donneurs]
+      operationId: lireEligibilite
+      summary: Eligibility result with the reasons (rules R1 to R4)
+      parameters:
+      - {$ref: '#/components/parameters/Id'}
+      responses:
+        '200':
+          description: Eligibility of the donor today
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Eligibilite'}
+              examples:
+                nonEligible:
+                  value:
+                    statut: NON_ELIGIBLE
+                    raisons: [PREMIER_DON_APRES_65]
+                    dateFin: null
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/donneurs/{id}/ajournements:
+    post:
+      tags: [Donneurs]
+      operationId: ajouterAjournement
+      summary: Add a temporary deferral (doctor)
+      parameters:
+      - {$ref: '#/components/parameters/Id'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AjournementRequest'}
+      responses:
+        '201':
+          description: Deferral created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Ajournement'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/centres:
+    get:
+      tags: [Centres]
+      operationId: listerCentres
+      summary: List the centres
+      parameters:
+      - name: type
+        in: query
+        schema: {$ref: '#/components/schemas/TypeCentre'}
+      - name: ville
+        in: query
+        schema: {type: string, example: Sfax}
+      responses:
+        '200':
+          description: The centres
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Centre'}
+  /api/v1/centres/{id}/creneaux:
+    parameters:
+    - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Centres]
+      operationId: listerCreneaux
+      summary: Free slots of a centre for one day (used when booking from home)
+      parameters:
+      - name: date
+        in: query
+        required: true
+        schema: {type: string, format: date, example: '2026-11-12'}
+      responses:
+        '200':
+          description: Slots of that day that still have a free place
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Creneau'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    post:
+      tags: [Centres]
+      operationId: creerCreneaux
+      summary: Create slots with a capacity (staff or admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items: {$ref: '#/components/schemas/CreneauRequest'}
+      responses:
+        '201':
+          description: Slots created
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Creneau'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/rendez-vous:
+    post:
+      tags: [Rendez-vous]
+      operationId: creerRendezVous
+      summary: Book a slot from home (EN_LIGNE) or at the centre (SUR_PLACE)
+      description: Checks eligibility, the free place of the slot (R22) and one active appointment per day (R23).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RendezVousRequest'}
+      responses:
+        '201':
+          description: Appointment created
+          headers:
+            Location:
+              description: URL of the new appointment
+              schema: {type: string, example: /api/v1/rendez-vous/1}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RendezVous'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    get:
+      tags: [Rendez-vous]
+      operationId: listerRendezVous
+      summary: List appointments
+      parameters:
+      - name: centreId
+        in: query
+        schema: {type: integer, format: int64}
+      - name: date
+        in: query
+        schema: {type: string, format: date}
+      - name: statut
+        in: query
+        schema: {$ref: '#/components/schemas/StatutRendezVous'}
+      responses:
+        '200':
+          description: The appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/RendezVous'}
+  /api/v1/rendez-vous/{id}:
+    parameters:
+    - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Rendez-vous]
+      operationId: lireRendezVous
+      summary: Read an appointment
+      responses:
+        '200':
+          description: The appointment
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RendezVous'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Rendez-vous]
+      operationId: modifierRendezVous
+      summary: Cancel the appointment or move it to another slot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RendezVousPatch'}
+      responses:
+        '200':
+          description: Appointment updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RendezVous'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/v1/dons:
+    post:
+      tags: [Dons]
+      operationId: demarrerDon
+      summary: Start a donation visit (step 1, reception)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DonRequest'}
+      responses:
+        '201':
+          description: Visit started, step ENTRETIEN_MEDICAL is next
+          headers:
+            Location:
+              description: URL of the new donation visit
+              schema: {type: string, example: /api/v1/dons/1}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Don'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/v1/dons/{id}:
+    get:
+      tags: [Dons]
+      operationId: lireDon
+      summary: Read a donation visit (interview data hidden from donors, rule R20)
+      parameters:
+      - {$ref: '#/components/parameters/Id'}
+      - {$ref: '#/components/parameters/UserId'}
+      - {$ref: '#/components/parameters/UserRole'}
+      responses:
+        '200':
+          description: The donation visit
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Don'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/dons/{id}/entretien:
+    post:
+      tags: [Dons]
+      operationId: enregistrerEntretien
+      summary: Step 2, medical interview (blood pressure, haemoglobin, decision)
+      parameters:
+      - {$ref: '#/components/parameters/Id'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/EntretienRequest'}
+      responses:
+        '201':
+          description: Interview saved, visit goes to PRELEVEMENT or REFUSE
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Don'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/v1/dons/{id}/prelevement:
+    post:
+      tags: [Dons]
+      operationId: enregistrerPrelevement
+      summary: Step 3, collection of 450 ml (then gRPC call to Don & Stock)
+      parameters:
+      - {$ref: '#/components/parameters/Id'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PrelevementRequest'}
+      responses:
+        '201':
+          description: Collection saved; statutSynchro is SYNCHRONISE or A_SYNCHRONISER
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Don'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/v1/dons/{id}/repos:
+    post:
+      tags: [Dons]
+      operationId: enregistrerRepos
+      summary: Step 4, rest (minimum 15 minutes, rule R9)
+      parameters:
+      - {$ref: '#/components/parameters/Id'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ReposRequest'}
+      responses:
+        '201':
+          description: Rest saved, the visit is TERMINE
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Don'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/v1/dons/{id}/certificat:
+    get:
+      tags: [Certificats]
+      operationId: lireCertificat
+      summary: Read the donation certificate (JSON, or PDF with Accept application/pdf)
+      description: A donor can read only his own certificate. The certificate shows no health data (R27).
+      parameters:
+      - {$ref: '#/components/parameters/Id'}
+      - {$ref: '#/components/parameters/UserId'}
+      - {$ref: '#/components/parameters/UserRole'}
+      responses:
+        '200':
+          description: The certificate, EN_PREPARATION (no number yet) or EMIS
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Certificat'}
+            application/pdf:
+              schema: {type: string, format: binary}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /api/v1/certificats/{numero}:
+    get:
+      tags: [Certificats]
+      operationId: verifierCertificat
+      summary: Verify a certificate by its number (public)
+      parameters:
+      - name: numero
+        in: path
+        required: true
+        schema: {type: string, example: CERT-2026-000123}
+      responses:
+        '200':
+          description: The certificate is valid
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CertificatVerification'}
+        '404': {$ref: '#/components/responses/NotFound'}
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: {type: integer, format: int64, example: 1}
+    Page:
+      name: page
+      in: query
+      schema: {type: integer, minimum: 0, default: 0}
+    Size:
+      name: size
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+    UserId:
+      name: X-User-Id
+      in: header
+      description: Set by the Gateway from the JWT (donor id); a donor reads only his own certificate
+      schema: {type: string}
+    UserRole:
+      name: X-User-Role
+      in: header
+      description: Set by the Gateway from the JWT; interview data is hidden from donors (R20)
+      schema: {type: string}
+  responses:
+    BadRequest:
+      description: Invalid request, with the list of wrong fields
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {timestamp: '2026-11-08T10:15:30Z', status: 400, error: Bad Request, message: 'cin: must contain 8 digits', path: /api/v1/donneurs}
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {timestamp: '2026-11-08T10:15:30Z', status: 404, error: Not Found, message: Donneur 99 not found, path: /api/v1/donneurs/99}
+    Conflict:
+      description: Business conflict (CIN already used, slot full, not eligible, wrong step, visit not finished)
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+          example: {timestamp: '2026-11-08T10:15:30Z', status: 409, error: Conflict, message: Slot is full, path: /api/v1/rendez-vous}
+  schemas:
+    GroupeSanguin:
+      type: string
+      enum: [A_POS, A_NEG, B_POS, B_NEG, AB_POS, AB_NEG, O_POS, O_NEG]
+    TypeCentre:
+      type: string
+      enum: [CNTS, CRTS, BANQUE_HOPITAL, CLINIQUE_SANS_STOCK, COLLECTE_MOBILE]
+    MotifAjournement:
+      type: string
+      enum: [TATOUAGE, PIERCING, CHIRURGIE, ANTIBIOTIQUES, INFECTION]
+    StatutRendezVous:
+      type: string
+      enum: [PLANIFIE, ANNULE, ABSENT, TERMINE]
+    DonneurRequest:
+      type: object
+      required: [cin, nom, prenom, dateNaissance, poidsKg, groupeSanguin, ville, telephone]
+      properties:
+        cin: {type: string, pattern: '^[0-9]{8}$', example: '12345678'}
+        nom: {type: string, minLength: 1, example: Ben Ali}
+        prenom: {type: string, minLength: 1, example: Yosra}
+        dateNaissance: {type: string, format: date, example: '2000-05-14'}
+        poidsKg: {type: number, exclusiveMinimum: true, minimum: 0, example: 62.5}
+        groupeSanguin: {$ref: '#/components/schemas/GroupeSanguin'}
+        ville: {type: string, example: Sfax}
+        telephone: {type: string, pattern: '^(\+216)?[0-9]{8}$', example: '+21620123456'}
+    Donneur:
+      allOf:
+      - {$ref: '#/components/schemas/DonneurRequest'}
+      - type: object
+        required: [id, premierDon]
+        properties:
+          id: {type: integer, format: int64, readOnly: true, example: 1}
+          premierDon: {type: boolean, description: True until the first donation is finished, example: true}
+    PageDonneur:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content:
+          type: array
+          items: {$ref: '#/components/schemas/Donneur'}
+        page: {type: integer, example: 0}
+        size: {type: integer, example: 20}
+        totalElements: {type: integer, format: int64, example: 42}
+        totalPages: {type: integer, example: 3}
+    Eligibilite:
+      type: object
+      required: [statut, raisons]
+      properties:
+        statut:
+          type: string
+          enum: [ELIGIBLE, AJOURNE_TEMPORAIREMENT, NON_ELIGIBLE]
+        raisons:
+          type: array
+          description: Reasons why the donor is not eligible or is deferred (rules R1 to R4), for example PREMIER_DON_APRES_65 (R2)
+          items: {type: string}
+        dateFin: {type: string, format: date, nullable: true, description: 'End of the active deferral, when statut is AJOURNE_TEMPORAIREMENT'}
+    AjournementRequest:
+      type: object
+      required: [motif, dateDebut, dateFin]
+      properties:
+        motif: {$ref: '#/components/schemas/MotifAjournement'}
+        dateDebut: {type: string, format: date, example: '2026-11-08'}
+        dateFin: {type: string, format: date, description: Not before dateDebut, example: '2027-05-08'}
+    Ajournement:
+      allOf:
+      - {$ref: '#/components/schemas/AjournementRequest'}
+      - type: object
+        required: [id, donneurId]
+        properties:
+          id: {type: integer, format: int64, readOnly: true}
+          donneurId: {type: integer, format: int64}
+    Centre:
+      type: object
+      required: [id, nom, type, ville]
+      properties:
+        id: {type: integer, format: int64}
+        nom: {type: string, example: CRTS Sfax}
+        type: {$ref: '#/components/schemas/TypeCentre'}
+        ville: {type: string, example: Sfax}
+        dateDebut: {type: string, format: date, nullable: true, description: Only for a mobile collection}
+        dateFin: {type: string, format: date, nullable: true, description: Only for a mobile collection}
+    CreneauRequest:
+      type: object
+      required: [debut, fin]
+      properties:
+        debut: {type: string, format: date-time, example: '2026-11-12T09:00:00Z'}
+        fin: {type: string, format: date-time, description: After debut, example: '2026-11-12T09:30:00Z'}
+        capacite: {type: integer, minimum: 1, default: 4}
+    Creneau:
+      type: object
+      required: [id, centreId, debut, fin, capacite, placesRestantes]
+      properties:
+        id: {type: integer, format: int64}
+        centreId: {type: integer, format: int64}
+        debut: {type: string, format: date-time}
+        fin: {type: string, format: date-time}
+        capacite: {type: integer, example: 4}
+        placesRestantes: {type: integer, example: 3}
+    RendezVousRequest:
+      type: object
+      required: [donneurId, creneauId, canal]
+      properties:
+        donneurId: {type: integer, format: int64}
+        creneauId: {type: integer, format: int64}
+        canal:
+          type: string
+          enum: [EN_LIGNE, SUR_PLACE]
+        demandeId: {type: integer, format: int64, nullable: true, description: Optional (for compensation)}
+    RendezVousPatch:
+      type: object
+      description: Send statut ANNULE to cancel, or creneauId to move to another slot
+      properties:
+        statut:
+          type: string
+          enum: [ANNULE]
+        creneauId: {type: integer, format: int64}
+    RendezVous:
+      type: object
+      required: [id, donneurId, centreId, creneauId, canal, statut]
+      properties:
+        id: {type: integer, format: int64}
+        donneurId: {type: integer, format: int64}
+        centreId: {type: integer, format: int64}
+        creneauId: {type: integer, format: int64}
+        canal:
+          type: string
+          enum: [EN_LIGNE, SUR_PLACE]
+        demandeId: {type: integer, format: int64, nullable: true}
+        statut: {$ref: '#/components/schemas/StatutRendezVous'}
+    DonRequest:
+      type: object
+      required: [donneurId, centreId, cin, questionnaire]
+      properties:
+        donneurId: {type: integer, format: int64}
+        centreId: {type: integer, format: int64}
+        rendezVousId: {type: integer, format: int64, nullable: true, description: Absent for a walk-in visit}
+        cin: {type: string, pattern: '^[0-9]{8}$', description: CIN typed by the staff (must match the donor)}
+        questionnaire: {type: object, additionalProperties: true, description: Answers of the health questionnaire}
+    EntretienRequest:
+      type: object
+      required: [tensionSystolique, tensionDiastolique, hemoglobineGdl, decision]
+      properties:
+        tensionSystolique: {type: integer, example: 120}
+        tensionDiastolique: {type: integer, example: 80}
+        hemoglobineGdl: {type: number, example: 13.5}
+        decision:
+          type: string
+          enum: [APTE, INAPTE]
+        ajournement:
+          allOf:
+          - {$ref: '#/components/schemas/AjournementRequest'}
+          description: Optional deferral added when the decision is INAPTE
+    PrelevementRequest:
+      type: object
+      required: [volumeMl, dureeMinutes]
+      properties:
+        volumeMl: {type: integer, description: Must equal VOLUME_PRELEVEMENT_ML, example: 450}
+        dureeMinutes: {type: integer, minimum: 1, example: 10}
+    ReposRequest:
+      type: object
+      required: [debutRepos, finRepos]
+      properties:
+        debutRepos: {type: string, format: date-time}
+        finRepos: {type: string, format: date-time, description: At least REPOS_MIN_MINUTES after the end of the collection}
+    Don:
+      type: object
+      required: [id, donneurId, centreId, etape, statutSynchro, certificatStatut]
+      properties:
+        id: {type: integer, format: int64}
+        donneurId: {type: integer, format: int64}
+        centreId: {type: integer, format: int64}
+        rendezVousId: {type: integer, format: int64, nullable: true}
+        etape:
+          type: string
+          enum: [ACCUEIL, ENTRETIEN_MEDICAL, PRELEVEMENT, REPOS, TERMINE, REFUSE]
+        decision:
+          type: string
+          enum: [APTE, INAPTE]
+          nullable: true
+        statutSynchro:
+          type: string
+          enum: [A_SYNCHRONISER, SYNCHRONISE]
+        numeroDonNational: {type: string, nullable: true}
+        certificatStatut:
+          type: string
+          enum: [A_EMETTRE, EMIS]
+        numeroCertificat: {type: string, nullable: true}
+        dateCertificat: {type: string, format: date-time, nullable: true}
+        entretien: {type: object, nullable: true, description: 'Interview data, returned only to centre staff and admin (R20)', additionalProperties: true}
+    Certificat:
+      type: object
+      required: [statut, donneurNom, cinMasque, dateDon, centre]
+      description: No health data (R27)
+      properties:
+        statut:
+          type: string
+          enum: [EN_PREPARATION, EMIS]
+        numeroCertificat: {type: string, nullable: true, description: Absent while EN_PREPARATION}
+        numeroDonNational: {type: string, nullable: true}
+        donneurNom: {type: string, example: Yosra Ben Ali}
+        cinMasque: {type: string, example: '****5678'}
+        dateDon: {type: string, format: date}
+        centre: {type: string, example: CRTS Sfax}
+        volumeMl: {type: integer, example: 450}
+        autorite: {type: string, example: CNTS}
+    CertificatVerification:
+      type: object
+      required: [valide, date, centre]
+      properties:
+        valide: {type: boolean, example: true}
+        date: {type: string, format: date}
+        centre: {type: string}
+    Error:
+      type: object
+      required: [timestamp, status, error, message, path]
+      properties:
+        timestamp: {type: string, format: date-time}
+        status: {type: integer}
+        error: {type: string}
+        message: {type: string}
+        path: {type: string}
