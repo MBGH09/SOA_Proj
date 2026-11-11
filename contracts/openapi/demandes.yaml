@@ -1,13 +1,742 @@
-POST /api/v1/demandes
-GET /api/v1/demandes
-GET /api/v1/demandes/{id}
-PATCH /api/v1/demandes/{id}
+openapi: 3.0.3
 
-POST /api/v1/demandes/{id}/compensations
+info:
+  title: API service-demandes
+  version: 1.0.0
+  description: |
+    Contrat REST du service **service-demandes** (port 8082), écrit avant le code (contract-first).
 
-POST /api/v1/appels
-GET /api/v1/appels
-PATCH /api/v1/appels/{id}
+    Le service gère :
+    - les demandes de sang des hôpitaux (motif, groupe, composant, urgence, compensation) ;
+    - les appels publics aux dons, ouverts automatiquement en cas de pénurie ;
+    - la compensation par les donneurs de la famille (numéros de certificat de don) ;
+    - le pont REST vers le stock en direct de `service-don-stock` (gRPC).
 
-GET /api/v1/stock/niveaux
-GET /api/v1/stock/niveaux/flux
+    ### Résultat de la création d'une demande
+    | Réponse de Don & Stock | Statut de la demande | HTTP |
+    |---|---|---|
+    | `RESERVEE_STOCK_LOCAL` | `SATISFAITE` | 201 |
+    | `APPROVISIONNEMENT_COMMANDE` | `APPROVISIONNEMENT_EN_COURS` | 202 |
+    | `STOCK_INSUFFISANT_PARTOUT` | `EN_PENURIE` (un appel public est ouvert) | 202 |
+    | Panne technique ou disjoncteur ouvert | `EN_ATTENTE` | 202 |
+    | Données invalides | demande non enregistrée | 400 |
+
+    Toutes les erreurs ont le même format JSON : `timestamp`, `status`, `error`, `message`, `path`.
+
+    Règles : R11 (quantité au moins 1), R16 (pénurie : appel public), R17 (compensation de 2 à 3 donneurs),
+    R19 (patient identifié par une référence anonyme uniquement), R26 (un numéro de certificat ne compte qu'une fois).
+  license:
+    name: Projet pédagogique IIT Sfax
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Gateway (point d'entrée unique utilisé par le frontend)
+  - url: http://localhost:8082/api/v1
+    description: Accès direct au service (développement)
+
+# Pas d'authentification dans ce contrat : le Gateway ajoutera le JWT et les rôles (S2-07, S2-08, bonus).
+security: []
+
+tags:
+  - name: Demandes
+    description: Demandes de sang des hôpitaux
+  - name: Compensations
+    description: Donneurs de la famille, comptés par numéro de certificat
+  - name: Appels
+    description: Appels publics aux dons (la lecture est publique)
+  - name: Stock
+    description: Niveaux de stock en direct (pont vers le gRPC de service-don-stock)
+
+paths:
+  /demandes:
+    post:
+      tags: [Demandes]
+      operationId: creerDemande
+      summary: Créer une demande de sang
+      description: |
+        Enregistre la demande avec le statut `EN_ATTENTE`, puis demande à Don & Stock de vérifier
+        et de réserver le sang. Le statut final et le code HTTP dépendent de la réponse (voir le tableau
+        de la description générale).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemandeRequest'
+            examples:
+              chirurgie:
+                summary: Chirurgie, hôpital avec banque de sang
+                value:
+                  hopitalId: HOP-SFX-01
+                  hopitalNom: CHU Habib Bourguiba Sfax
+                  patientRef: PAT20260042
+                  motif: CHIRURGIE
+                  groupeSanguin: O_NEG
+                  composant: CGR
+                  quantitePoches: 3
+                  urgence: HAUTE
+                  compensationDemandee: 2
+      responses:
+        '201':
+          description: Sang réservé dans le stock local de l'hôpital. Statut `SATISFAITE`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Demande'
+              examples:
+                reserveeLocalement:
+                  value:
+                    id: 3f1b6c0e-8f6a-4a52-9d57-1c1c2f3a9b10
+                    hopitalId: HOP-SFX-01
+                    hopitalNom: CHU Habib Bourguiba Sfax
+                    patientRef: PAT20260042
+                    motif: CHIRURGIE
+                    groupeSanguin: O_NEG
+                    composant: CGR
+                    quantitePoches: 3
+                    urgence: HAUTE
+                    statut: SATISFAITE
+                    referenceApprovisionnement: null
+                    compensationDemandee: 2
+                    compensationRecue: 0
+                    dateCreation: '2026-11-09T21:30:00Z'
+        '202':
+          description: |
+            Demande acceptée mais pas encore satisfaite. Le statut vaut `APPROVISIONNEMENT_EN_COURS`
+            (commande au CRTS ou au CNTS), `EN_PENURIE` (personne n'a le sang, un appel public est ouvert)
+            ou `EN_ATTENTE` (Don & Stock indisponible, un travail de réconciliation terminera la demande).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Demande'
+              examples:
+                approvisionnement:
+                  summary: Commande acceptée par le CRTS
+                  value:
+                    id: 7a0d4a56-52c4-4b1f-8f43-0b6f2f0d2a11
+                    hopitalId: CLI-SFX-01
+                    hopitalNom: Clinique exemple Sfax
+                    patientRef: PAT20260043
+                    motif: URGENCE
+                    groupeSanguin: A_POS
+                    composant: CGR
+                    quantitePoches: 2
+                    urgence: CRITIQUE
+                    statut: APPROVISIONNEMENT_EN_COURS
+                    referenceApprovisionnement: APP-2026-000118
+                    compensationDemandee: null
+                    compensationRecue: 0
+                    dateCreation: '2026-11-09T21:35:00Z'
+                penurie:
+                  summary: Personne n'a le sang, appel public ouvert
+                  value:
+                    id: 91c3e1d2-6bb2-4cf6-8d6f-0f8e6a2b7c12
+                    hopitalId: HOP-SFX-02
+                    hopitalNom: CHU Hedi Chaker Sfax
+                    patientRef: PAT20260044
+                    motif: TRAITEMENT
+                    groupeSanguin: AB_NEG
+                    composant: PLAQUETTES
+                    quantitePoches: 4
+                    urgence: HAUTE
+                    statut: EN_PENURIE
+                    referenceApprovisionnement: null
+                    compensationDemandee: 3
+                    compensationRecue: 0
+                    dateCreation: '2026-11-09T21:40:00Z'
+                enAttente:
+                  summary: Don & Stock indisponible (repli)
+                  value:
+                    id: c5b1a7f0-1d3e-4a9c-b8a7-4e2d9f6a3d13
+                    hopitalId: HOP-SFX-01
+                    hopitalNom: CHU Habib Bourguiba Sfax
+                    patientRef: PAT20260045
+                    motif: CHIRURGIE
+                    groupeSanguin: B_POS
+                    composant: CGR
+                    quantitePoches: 1
+                    urgence: NORMALE
+                    statut: EN_ATTENTE
+                    referenceApprovisionnement: null
+                    compensationDemandee: null
+                    compensationRecue: 0
+                    dateCreation: '2026-11-09T21:45:00Z'
+        '400':
+          $ref: '#/components/responses/DonneesInvalides'
+    get:
+      tags: [Demandes]
+      operationId: listerDemandes
+      summary: Lister les demandes
+      parameters:
+        - name: statut
+          in: query
+          description: Filtre sur le statut.
+          schema:
+            $ref: '#/components/schemas/StatutDemande'
+        - name: hopitalId
+          in: query
+          description: Filtre sur l'hôpital demandeur.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Liste des demandes, de la plus récente à la plus ancienne.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Demande'
+        '400':
+          $ref: '#/components/responses/DonneesInvalides'
+
+  /demandes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/DemandeId'
+    get:
+      tags: [Demandes]
+      operationId: lireDemande
+      summary: Lire une demande
+      responses:
+        '200':
+          description: La demande.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Demande'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+    patch:
+      tags: [Demandes]
+      operationId: modifierDemande
+      summary: Annuler une demande ou corriger la compensation à la main
+      description: |
+        Deux usages, au moins un champ est obligatoire :
+        - `statut: ANNULEE` annule une demande encore ouverte (`EN_ATTENTE`, `APPROVISIONNEMENT_EN_COURS`
+          ou `EN_PENURIE`) ;
+        - `compensationRecue` corrige le compteur à la main. C'est le repli quand `service-donneurs`
+          ne répond pas pendant la vérification d'un certificat.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemandePatch'
+            examples:
+              annuler:
+                value:
+                  statut: ANNULEE
+              corrigerCompteur:
+                value:
+                  compensationRecue: 2
+      responses:
+        '200':
+          description: La demande mise à jour.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Demande'
+        '400':
+          $ref: '#/components/responses/DonneesInvalides'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+        '409':
+          description: La demande n'est plus ouverte (déjà satisfaite ou annulée), elle ne peut plus être annulée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+
+  /demandes/{id}/compensations:
+    parameters:
+      - $ref: '#/components/parameters/DemandeId'
+    post:
+      tags: [Compensations]
+      operationId: enregistrerCompensation
+      summary: Enregistrer un donneur de la famille par son numéro de certificat
+      description: |
+        Le numéro est vérifié auprès de `service-donneurs` (`GET /certificats/{numero}`).
+        Chaque numéro valide augmente `compensationRecue` de 1 et ne peut être utilisé qu'une seule fois (R26).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompensationRequest'
+            examples:
+              exemple:
+                value:
+                  numeroCertificat: CERT-2026-000001
+      responses:
+        '201':
+          description: Numéro accepté et compté.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Compensation'
+        '400':
+          description: |
+            Numéro vide ou invalide pour `service-donneurs`, ou la demande ne réclame aucune compensation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+        '409':
+          description: Ce numéro de certificat a déjà été utilisé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+        '503':
+          description: |
+            `service-donneurs` est indisponible (délai dépassé ou disjoncteur ouvert).
+            Le personnel corrige alors `compensationRecue` avec `PATCH /demandes/{id}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+
+  /appels:
+    post:
+      tags: [Appels]
+      operationId: ouvrirAppel
+      summary: Ouvrir un appel public aux dons à la main
+      description: >
+        L'ouverture automatique se fait toute seule quand une demande passe à `EN_PENURIE`
+        (un appel ouvert pour le même groupe et le même composant est réutilisé).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppelRequest'
+            examples:
+              exemple:
+                value:
+                  groupeSanguin: AB_NEG
+                  composant: PLAQUETTES
+                  demandeId: 91c3e1d2-6bb2-4cf6-8d6f-0f8e6a2b7c12
+      responses:
+        '201':
+          description: Appel ouvert.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppelDon'
+        '400':
+          $ref: '#/components/responses/DonneesInvalides'
+    get:
+      tags: [Appels]
+      operationId: listerAppels
+      summary: Lister les appels publics (lecture publique)
+      parameters:
+        - name: statut
+          in: query
+          description: Filtre sur le statut, par exemple `OUVERT` pour la zone donneur.
+          schema:
+            $ref: '#/components/schemas/StatutAppel'
+      responses:
+        '200':
+          description: Liste des appels.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppelDon'
+        '400':
+          $ref: '#/components/responses/DonneesInvalides'
+
+  /appels/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identifiant de l'appel.
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Appels]
+      operationId: fermerAppel
+      summary: Fermer un appel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppelPatch'
+            examples:
+              fermer:
+                value:
+                  statut: FERME
+      responses:
+        '200':
+          description: L'appel fermé (la date de fermeture est renseignée).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppelDon'
+        '400':
+          $ref: '#/components/responses/DonneesInvalides'
+        '404':
+          $ref: '#/components/responses/NonTrouve'
+
+  /stock/niveaux:
+    get:
+      tags: [Stock]
+      operationId: consulterNiveauxStock
+      summary: Niveaux de stock actuels
+      description: "Pont REST vers le flux gRPC `SuivreNiveauxStock`. Renvoie l'état courant des niveaux."
+      parameters:
+        - name: lieuId
+          in: query
+          description: Filtre sur un lieu (hôpital, CRTS ou CNTS).
+          schema:
+            type: string
+        - name: groupeSanguin
+          in: query
+          description: Filtre sur un groupe sanguin.
+          schema:
+            $ref: '#/components/schemas/GroupeSanguin'
+      responses:
+        '200':
+          description: Niveaux courants.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NiveauStock'
+        '400':
+          $ref: '#/components/responses/DonneesInvalides'
+        '503':
+          description: Le service de stock est indisponible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+
+  /stock/niveaux/flux:
+    get:
+      tags: [Stock]
+      operationId: suivreNiveauxStock
+      summary: Niveaux de stock en direct (server-sent events)
+      description: |
+        Flux `text/event-stream`. Les niveaux courants sont envoyés d'abord, puis chaque changement
+        (pouches qualifiées, réservations, livraisons, péremptions). Chaque événement a `event: niveau`
+        et une ligne `data:` qui contient un objet JSON `NiveauStock`.
+        Le Gateway ne doit ni mettre cette réponse en tampon ni couper la connexion.
+      parameters:
+        - name: lieuId
+          in: query
+          description: Filtre sur un lieu.
+          schema:
+            type: string
+        - name: groupeSanguin
+          in: query
+          description: Filtre sur un groupe sanguin.
+          schema:
+            $ref: '#/components/schemas/GroupeSanguin'
+      responses:
+        '200':
+          description: Flux d'événements, la connexion reste ouverte.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: |
+                event: niveau
+                data: {"lieuId":"HOP-SFX-01","groupeSanguin":"O_NEG","composant":"CGR","quantite":12,"seuilAlerte":10,"niveau":"MOYEN","timestamp":"2026-11-09T21:50:00Z"}
+
+        '400':
+          $ref: '#/components/responses/DonneesInvalides'
+        '503':
+          description: Le service de stock est indisponible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erreur'
+
+components:
+  parameters:
+    DemandeId:
+      name: id
+      in: path
+      required: true
+      description: Identifiant de la demande.
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    DonneesInvalides:
+      description: Données invalides (champ manquant, valeur inconnue, quantité inférieure à 1, etc.). Rien n'est enregistré.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          examples:
+            quantite:
+              value:
+                timestamp: '2026-11-09T21:30:00Z'
+                status: 400
+                error: Bad Request
+                message: 'quantitePoches: La quantité doit être supérieure à 0'
+                path: /api/v1/demandes
+    NonTrouve:
+      description: Ressource introuvable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erreur'
+          examples:
+            introuvable:
+              value:
+                timestamp: '2026-11-09T21:30:00Z'
+                status: 404
+                error: Not Found
+                message: Demande introuvable
+                path: /api/v1/demandes/3f1b6c0e-8f6a-4a52-9d57-1c1c2f3a9b10
+
+  schemas:
+    GroupeSanguin:
+      type: string
+      enum: [A_POS, A_NEG, B_POS, B_NEG, AB_POS, AB_NEG, O_POS, O_NEG]
+    Composant:
+      type: string
+      description: Composant sanguin. CGR = globules rouges.
+      enum: [CGR, PLASMA, PLAQUETTES]
+    MotifDemande:
+      type: string
+      enum: [CHIRURGIE, URGENCE, TRAITEMENT]
+    Urgence:
+      type: string
+      enum: [NORMALE, HAUTE, CRITIQUE]
+    StatutDemande:
+      type: string
+      enum: [EN_ATTENTE, SATISFAITE, APPROVISIONNEMENT_EN_COURS, EN_PENURIE, ANNULEE]
+    StatutAppel:
+      type: string
+      enum: [OUVERT, FERME]
+    NiveauAlerte:
+      type: string
+      enum: [BAS, MOYEN, HAUT]
+
+    DemandeRequest:
+      type: object
+      required: [hopitalId, hopitalNom, patientRef, motif, groupeSanguin, composant, quantitePoches, urgence]
+      properties:
+        hopitalId:
+          type: string
+          maxLength: 100
+          description: Identifiant du lieu demandeur (hôpital ou clinique).
+          example: HOP-SFX-01
+        hopitalNom:
+          type: string
+          maxLength: 255
+          example: CHU Habib Bourguiba Sfax
+        patientRef:
+          type: string
+          pattern: '^[A-Za-z0-9]+$'
+          maxLength: 50
+          description: Référence anonyme du patient, lettres et chiffres seulement. Aucun nom de patient n'est stocké (R19).
+          example: PAT20260042
+        motif:
+          $ref: '#/components/schemas/MotifDemande'
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        composant:
+          $ref: '#/components/schemas/Composant'
+        quantitePoches:
+          type: integer
+          minimum: 1
+          description: Nombre de poches (R11).
+          example: 3
+        urgence:
+          $ref: '#/components/schemas/Urgence'
+        compensationDemandee:
+          type: integer
+          minimum: 2
+          maximum: 3
+          nullable: true
+          description: Nombre de donneurs demandés à la famille du patient (R17). Absent si l'hôpital n'en demande pas.
+
+    Demande:
+      type: object
+      required: [id, hopitalId, hopitalNom, patientRef, motif, groupeSanguin, composant, quantitePoches, urgence, statut, compensationRecue, dateCreation]
+      properties:
+        id:
+          type: string
+          format: uuid
+        hopitalId:
+          type: string
+        hopitalNom:
+          type: string
+        patientRef:
+          type: string
+        motif:
+          $ref: '#/components/schemas/MotifDemande'
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        composant:
+          $ref: '#/components/schemas/Composant'
+        quantitePoches:
+          type: integer
+          minimum: 1
+        urgence:
+          $ref: '#/components/schemas/Urgence'
+        statut:
+          $ref: '#/components/schemas/StatutDemande'
+        referenceApprovisionnement:
+          type: string
+          nullable: true
+          description: Référence de la commande ou de la réservation chez Don & Stock, quand il y en a une.
+        compensationDemandee:
+          type: integer
+          nullable: true
+        compensationRecue:
+          type: integer
+          minimum: 0
+          description: Nombre de certificats valides enregistrés.
+        dateCreation:
+          type: string
+          format: date-time
+
+    DemandePatch:
+      type: object
+      minProperties: 1
+      properties:
+        statut:
+          type: string
+          enum: [ANNULEE]
+          description: Seule la valeur `ANNULEE` est acceptée.
+        compensationRecue:
+          type: integer
+          minimum: 0
+          description: Correction manuelle du compteur (repli).
+
+    CompensationRequest:
+      type: object
+      required: [numeroCertificat]
+      properties:
+        numeroCertificat:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: CERT-2026-000001
+
+    Compensation:
+      type: object
+      required: [id, demandeId, numeroCertificat, dateEnregistrement, compensationRecue]
+      properties:
+        id:
+          type: string
+          format: uuid
+        demandeId:
+          type: string
+          format: uuid
+        numeroCertificat:
+          type: string
+        dateEnregistrement:
+          type: string
+          format: date-time
+        compensationRecue:
+          type: integer
+          description: Compteur de la demande après cet enregistrement.
+
+    AppelRequest:
+      type: object
+      required: [groupeSanguin, composant]
+      properties:
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        composant:
+          $ref: '#/components/schemas/Composant'
+        demandeId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Demande à l'origine de l'appel, facultative.
+        centreCibleId:
+          type: string
+          nullable: true
+          description: Centre de collecte où l'on invite les donneurs, facultatif.
+
+    AppelDon:
+      type: object
+      required: [id, groupeSanguin, composant, statut, dateOuverture]
+      properties:
+        id:
+          type: string
+          format: uuid
+        demandeId:
+          type: string
+          format: uuid
+          nullable: true
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        composant:
+          $ref: '#/components/schemas/Composant'
+        centreCibleId:
+          type: string
+          nullable: true
+        statut:
+          $ref: '#/components/schemas/StatutAppel'
+        dateOuverture:
+          type: string
+          format: date-time
+        dateFermeture:
+          type: string
+          format: date-time
+          nullable: true
+
+    AppelPatch:
+      type: object
+      required: [statut]
+      properties:
+        statut:
+          type: string
+          enum: [FERME]
+
+    NiveauStock:
+      type: object
+      required: [lieuId, groupeSanguin, composant, quantite, seuilAlerte, niveau, timestamp]
+      properties:
+        lieuId:
+          type: string
+        groupeSanguin:
+          $ref: '#/components/schemas/GroupeSanguin'
+        composant:
+          $ref: '#/components/schemas/Composant'
+        quantite:
+          type: integer
+          minimum: 0
+        seuilAlerte:
+          type: integer
+          minimum: 0
+        niveau:
+          $ref: '#/components/schemas/NiveauAlerte'
+        timestamp:
+          type: string
+          format: date-time
+
+    Erreur:
+      type: object
+      required: [timestamp, status, error, message, path]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+        path:
+          type: string
