@@ -95,6 +95,22 @@
     </dependencies>
 
     <build>
+
+        <!-- Copy cnts.xsd from contracts/ onto the classpath automatically.
+             DefaultWsdl11Definition generates the WSDL at runtime from this XSD.
+             No manual copy in src/main/resources/ is needed. -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>../contracts/wsdl-xsd</directory>
+                <includes>
+                    <include>cnts.xsd</include>
+                </includes>
+            </resource>
+        </resources>
+
         <plugins>
 
             <!-- SPRING BOOT PLUGIN -->
