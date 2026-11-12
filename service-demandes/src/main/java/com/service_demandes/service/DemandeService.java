@@ -5,14 +5,22 @@ import com.service_demandes.client.DonStockIndisponibleException;
 import com.service_demandes.client.ReservationCommande;
 import com.service_demandes.client.ReservationResultat;
 import com.service_demandes.dto.CreateDemandeRequest;
+import com.service_demandes.dto.ModifierDemandeRequest;
 import com.service_demandes.entity.Demande;
 import com.service_demandes.entity.StatutDemande;
+import com.service_demandes.exception.ConflitMetierException;
+import com.service_demandes.exception.RequeteInvalideException;
+import com.service_demandes.exception.RessourceIntrouvableException;
 import com.service_demandes.repository.DemandeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -96,6 +104,49 @@ public class DemandeService {
                 demande.setStatut(StatutDemande.EN_PENURIE);
                 // S6-07 : ouvrir (ou reutiliser) l'appel public pour ce groupe et ce composant
             }
+        }
+        return demandes.save(demande);
+    }
+
+    /** Liste, de la plus recente a la plus ancienne. Les deux filtres sont facultatifs. */
+    @Transactional(readOnly = true)
+    public List<Demande> lister(StatutDemande statut, String hopitalId) {
+        Specification<Demande> filtre = (racine, requete, cb) -> cb.conjunction();
+        if (statut != null) {
+            filtre = filtre.and((racine, requete, cb) -> cb.equal(racine.get("statut"), statut));
+        }
+        if (hopitalId != null && !hopitalId.isBlank()) {
+            filtre = filtre.and((racine, requete, cb) -> cb.equal(racine.get("hopitalId"), hopitalId));
+        }
+        return demandes.findAll(filtre, Sort.by(Sort.Direction.DESC, "dateCreation"));
+    }
+
+    @Transactional(readOnly = true)
+    public Demande lire(UUID id) {
+        return demandes.findById(id).orElseThrow(() -> new RessourceIntrouvableException("Demande introuvable"));
+    }
+
+    /** Annule une demande ouverte et/ou corrige le compteur de compensation a la main (repli). */
+    @Transactional
+    public Demande modifier(UUID id, ModifierDemandeRequest requete) {
+        if (requete.statut() == null && requete.compensationRecue() == null) {
+            throw new RequeteInvalideException("Au moins un champ est obligatoire : statut ou compensationRecue");
+        }
+        if (requete.statut() != null && requete.statut() != StatutDemande.ANNULEE) {
+            throw new RequeteInvalideException("Seul le statut ANNULEE est accepté");
+        }
+
+        Demande demande = lire(id);
+
+        if (requete.statut() == StatutDemande.ANNULEE) {
+            if (!demande.getStatut().estOuverte()) {
+                throw new ConflitMetierException(
+                        "La demande est au statut " + demande.getStatut() + " et ne peut plus être annulée");
+            }
+            demande.setStatut(StatutDemande.ANNULEE);
+        }
+        if (requete.compensationRecue() != null) {
+            demande.setCompensationRecue(requete.compensationRecue());
         }
         return demandes.save(demande);
     }

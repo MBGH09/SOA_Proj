@@ -13,6 +13,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -47,6 +48,31 @@ public class GlobalExceptionHandler {
                     Arrays.toString(invalide.getTargetType().getEnumConstants()));
         }
         return reponse(HttpStatus.BAD_REQUEST, message, requete);
+    }
+
+    /** Parametre de requete ou de chemin de mauvais type : statut inconnu, identifiant qui n'est pas un UUID. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErreurApi> typeInvalide(MethodArgumentTypeMismatchException ex, HttpServletRequest requete) {
+        String message = "Valeur '%s' invalide pour le paramètre '%s'".formatted(ex.getValue(), ex.getName());
+        if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
+            message += ". Valeurs possibles : " + Arrays.toString(ex.getRequiredType().getEnumConstants());
+        }
+        return reponse(HttpStatus.BAD_REQUEST, message, requete);
+    }
+
+    @ExceptionHandler(RequeteInvalideException.class)
+    public ResponseEntity<ErreurApi> requeteInvalide(RequeteInvalideException ex, HttpServletRequest requete) {
+        return reponse(HttpStatus.BAD_REQUEST, ex.getMessage(), requete);
+    }
+
+    @ExceptionHandler(RessourceIntrouvableException.class)
+    public ResponseEntity<ErreurApi> introuvable(RessourceIntrouvableException ex, HttpServletRequest requete) {
+        return reponse(HttpStatus.NOT_FOUND, ex.getMessage(), requete);
+    }
+
+    @ExceptionHandler(ConflitMetierException.class)
+    public ResponseEntity<ErreurApi> conflit(ConflitMetierException ex, HttpServletRequest requete) {
+        return reponse(HttpStatus.CONFLICT, ex.getMessage(), requete);
     }
 
     /** Erreurs HTTP standard de Spring (404, 405, 415...) gardent leur code mais prennent notre format. */
