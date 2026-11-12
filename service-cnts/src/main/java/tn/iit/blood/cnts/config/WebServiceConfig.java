@@ -6,21 +6,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.ws.config.annotation.EnableWs;
-import org.springframework.ws.wsdl.wsdl11.SimpleWsdl11Definition;
+import org.springframework.ws.wsdl.wsdl11.DefaultWsdl11Definition;
 import org.springframework.ws.transport.http.MessageDispatcherServlet;
 import org.springframework.xml.xsd.SimpleXsdSchema;
 import org.springframework.xml.xsd.XsdSchema;
 
 /**
- * Configuration du serveur SOAP Spring-WS.
+ * Configuration du serveur SOAP Spring-WS — S5-03 (conforme au guide).
  *
- * Deux beans enregistrés sous /ws/* :
- *   - "cnts"       → sert cnts.wsdl à /ws/cnts.wsdl  (SimpleWsdl11Definition)
- *   - "cntsSchema" → sert cnts.xsd  à /ws/cntsSchema.xsd (SimpleXsdSchema)
+ * Le guide demande DefaultWsdl11Definition : génère le WSDL automatiquement
+ * depuis le XSD. Les 3 opérations sont visibles à /ws/cnts.wsdl.
  *
- * Le WSDL référence cnts.xsd via schemaLocation="cnts.xsd".
- * Spring-WS résout ce chemin relatif automatiquement grâce au bean XsdSchema,
- * ce qui permet aux clients SOAP de charger les types sans erreur.
+ * Note : la configuration détaillée des Faults est réservée à S5-07.
  */
 @EnableWs
 @Configuration
@@ -28,36 +25,42 @@ public class WebServiceConfig {
 
     /**
      * Monte le dispatcher SOAP sur /ws/*
-     * Les appels SOAP   → http://localhost:8084/ws
-     * Le WSDL           → http://localhost:8084/ws/cnts.wsdl
-     * Le XSD            → http://localhost:8084/ws/cntsSchema.xsd
+     * → appels SOAP : http://localhost:8084/ws
+     * → WSDL auto   : http://localhost:8084/ws/cnts.wsdl
      */
     @Bean
     public ServletRegistrationBean<MessageDispatcherServlet> messageDispatcherServlet(
             ApplicationContext applicationContext) {
         MessageDispatcherServlet servlet = new MessageDispatcherServlet();
         servlet.setApplicationContext(applicationContext);
-        // Réécrit l'adresse du service dans le WSDL selon l'hôte réel
         servlet.setTransformWsdlLocations(true);
         return new ServletRegistrationBean<>(servlet, "/ws/*");
     }
 
     /**
-     * Sert le WSDL statique cnts.wsdl.
+     * Génère le WSDL automatiquement depuis cnts.xsd (S5-03, conforme au guide).
      * Nom du bean = "cnts" → URL : /ws/cnts.wsdl
+     *
+     * DefaultWsdl11Definition détecte les éléments du XSD dont le nom termine par
+     * "Request" / "Response" et crée les 3 opérations correspondantes :
+     *   enregistrerPrelevement, demanderApprovisionnement, delivrerCertificatDon
      */
     @Bean(name = "cnts")
-    public SimpleWsdl11Definition cntsWsdl() {
-        return new SimpleWsdl11Definition(new ClassPathResource("cnts.wsdl"));
+    public DefaultWsdl11Definition defaultWsdl11Definition(XsdSchema cntsSchema) {
+        DefaultWsdl11Definition wsdl = new DefaultWsdl11Definition();
+        wsdl.setPortTypeName("CntsPort");
+        wsdl.setLocationUri("/ws");
+        wsdl.setTargetNamespace("http://iit.tn/soa/cnts");
+        wsdl.setSchema(cntsSchema);
+        return wsdl;
     }
 
     /**
-     * Expose le XSD à /ws/cntsSchema.xsd
-     * Fix P1 : le WSDL importe cnts.xsd — le MessageDispatcherServlet détecte
-     * automatiquement les beans XsdSchema et les sert sous /ws/<beanName>.xsd.
-     * Les clients SOAP peuvent donc résoudre les types sans erreur 404.
+     * Charge cnts.xsd depuis le classpath.
+     * Le XSD est copié dans les ressources du service via la section <resources>
+     * du pom.xml (depuis contracts/wsdl-xsd/cnts.xsd).
      */
-    @Bean(name = "cntsSchema")
+    @Bean
     public XsdSchema cntsSchema() {
         return new SimpleXsdSchema(new ClassPathResource("cnts.xsd"));
     }
