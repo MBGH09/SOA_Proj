@@ -3,16 +3,27 @@ server:
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:cntsdb;DB_CLOSE_DELAY=-1}
-    username: ${SPRING_DATASOURCE_USERNAME:sa}
-    password: ${SPRING_DATASOURCE_PASSWORD:}
+    # Production (Docker) : variables d'environnement obligatoires
+    # Dev local (H2)      : valeurs par défaut utilisées automatiquement
+    url:              ${SPRING_DATASOURCE_URL:jdbc:h2:mem:cntsdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+    username:         ${SPRING_DATASOURCE_USERNAME:sa}
+    password:         ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: ${DB_DRIVER:org.h2.Driver}
+
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      # Flyway gère le schéma → Hibernate ne doit pas modifier les tables
+      ddl-auto: none
     show-sql: false
+
   flyway:
-    enabled: false   # disabled for local dev without PostgreSQL
+    # Activé par défaut → les migrations s'exécutent en production (PostgreSQL).
+    # Pour désactiver en dev local H2, passer FLYWAY_ENABLED=false en variable d'env
+    # ou utiliser le profil Spring "h2" (voir ci-dessous).
+    enabled: ${FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    # baseline-on-migrate : sécurité si la DB existe déjà sans table flyway_schema_history
+    baseline-on-migrate: true
 
 management:
   endpoints:
@@ -20,10 +31,23 @@ management:
       exposure:
         include: health
 
-# Simulation switches (Section 16 of the study)
+# Simulation switches (S5-09 — utilisés par Student 7 pour les démos)
 cnts:
-  latency-ms: ${CNTS_LATENCY_MS:0}
-  fail-rate: ${CNTS_FAIL_RATE:0.0}
+  latency-ms:            ${CNTS_LATENCY_MS:0}
+  fail-rate:             ${CNTS_FAIL_RATE:0.0}
   volume-prelevement-ml: ${VOLUME_PRELEVEMENT_ML:450}
-  delai-normal-minutes: 60
+  delai-normal-minutes:  60
   delai-critique-minutes: 15
+
+---
+# Profil "h2" : dev local sans Docker
+# Lancer avec : mvn spring-boot:run -Dspring-boot.run.profiles=h2
+spring:
+  config:
+    activate:
+      on-profile: h2
+  flyway:
+    enabled: false   # H2 ne supporte pas toutes les syntaxes PostgreSQL de Flyway
+  jpa:
+    hibernate:
+      ddl-auto: create-drop   # H2 crée les tables depuis les entités JPA
