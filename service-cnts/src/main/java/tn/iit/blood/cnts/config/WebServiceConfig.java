@@ -6,50 +6,51 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.ws.config.annotation.EnableWs;
-import org.springframework.ws.wsdl.wsdl11.DefaultWsdl11Definition;
+import org.springframework.ws.wsdl.wsdl11.SimpleWsdl11Definition;
 import org.springframework.ws.transport.http.MessageDispatcherServlet;
-import org.springframework.xml.xsd.SimpleXsdSchema;
-import org.springframework.xml.xsd.XsdSchema;
 
+/**
+ * Configuration du serveur SOAP Spring-WS.
+ *
+ * Changement S5-03 (correctif contrat) :
+ *   On passe de DefaultWsdl11Definition (génération auto) à
+ *   SimpleWsdl11Definition (WSDL statique).
+ *
+ * Raison : le générateur automatique crée les faults comme des
+ * opérations autonomes sans input/output. Le WSDL statique
+ * cnts.wsdl déclare correctement chaque fault sous l'opération
+ * qui la produit (PrelevementInvalide → enregistrerPrelevement,
+ * StockCentralInsuffisant → demanderApprovisionnement,
+ * CertificatRefuse → delivrerCertificatDon).
+ */
 @EnableWs
 @Configuration
 public class WebServiceConfig {
 
     /**
-     * Mounts the SOAP dispatcher on /ws/*
-     * So every SOAP call goes to http://localhost:8084/ws
-     * and the WSDL is at http://localhost:8084/ws/cnts.wsdl
+     * Monte le dispatcher SOAP sur /ws/*
+     * → les appels SOAP arrivent sur http://localhost:8084/ws
+     * → le WSDL est disponible sur http://localhost:8084/ws/cnts.wsdl
      */
     @Bean
     public ServletRegistrationBean<MessageDispatcherServlet> messageDispatcherServlet(
             ApplicationContext applicationContext) {
         MessageDispatcherServlet servlet = new MessageDispatcherServlet();
         servlet.setApplicationContext(applicationContext);
-        // Rewrites the WSDL location to match the actual server address
+        // Réécrit l'adresse du service dans le WSDL selon l'hôte réel
         servlet.setTransformWsdlLocations(true);
         return new ServletRegistrationBean<>(servlet, "/ws/*");
     }
 
     /**
-     * Generates the WSDL automatically from the XSD.
-     * The bean name "cnts" determines the WSDL URL: /ws/cnts.wsdl
+     * Sert le WSDL statique cnts.wsdl depuis src/main/resources/.
+     * Le nom du bean "cnts" détermine l'URL : /ws/cnts.wsdl
+     *
+     * Le WSDL statique déclare correctement les faults SOAP
+     * attachées à chaque opération dans le portType et le binding.
      */
     @Bean(name = "cnts")
-    public DefaultWsdl11Definition defaultWsdl11Definition(XsdSchema cntsSchema) {
-        DefaultWsdl11Definition wsdl = new DefaultWsdl11Definition();
-        wsdl.setPortTypeName("CntsPort");
-        wsdl.setLocationUri("/ws");
-        wsdl.setTargetNamespace("http://iit.tn/soa/cnts");
-        wsdl.setSchema(cntsSchema);
-        return wsdl;
-    }
-
-    /**
-     * Loads the XSD from src/main/resources/cnts.xsd
-     */
-    @Bean
-    public XsdSchema cntsSchema() {
-        return new SimpleXsdSchema(new ClassPathResource("cnts.xsd"));
+    public SimpleWsdl11Definition cntsWsdl() {
+        return new SimpleWsdl11Definition(new ClassPathResource("cnts.wsdl"));
     }
 }
-

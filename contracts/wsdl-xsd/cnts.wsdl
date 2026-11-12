@@ -1,271 +1,163 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:sch="http://iit.tn/soa/cnts" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://iit.tn/soa/cnts" targetNamespace="http://iit.tn/soa/cnts">
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WSDL du service-cnts (CNTS - Centre National de Transfusion Sanguine)
+  ======================================================================
+  Ce fichier est le CONTRAT OFFICIEL entre service-cnts (Student 5)
+  et service-don-stock (Student 4).
+
+  Opérations :
+    1. enregistrerPrelevement    → fault: PrelevementInvalide
+    2. demanderApprovisionnement → fault: StockCentralInsuffisant
+    3. delivrerCertificatDon     → fault: CertificatRefuse
+
+  Style   : document/literal (standard SOA)
+  Port    : 8084
+  URL     : http://<host>:8084/ws/cnts.wsdl
+-->
+<wsdl:definitions
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:tns="http://iit.tn/soa/cnts"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://iit.tn/soa/cnts"
+    name="cnts">
+
+  <!-- ================================================================
+       TYPES : on importe le XSD séparé (source de vérité du schéma)
+       ================================================================ -->
   <wsdl:types>
-    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://iit.tn/soa/cnts">
-
-    <!-- ===========================================================
-         CNTS (Centre National de Transfusion Sanguine) - SOAP Contract
-         Namespace  : http://iit.tn/soa/cnts
-         Operations : enregistrerPrelevement
-                      demanderApprovisionnement
-                      delivrerCertificatDon
-         Author     : Student 5 - service-cnts
-         =========================================================== -->
-
-    <!-- ==================== TYPES SIMPLES ==================== -->
-
-    <xs:simpleType name="GroupeSanguin">
-        <xs:restriction base="xs:string">
-            <xs:enumeration value="A_POS"/>
-            <xs:enumeration value="A_NEG"/>
-            <xs:enumeration value="B_POS"/>
-            <xs:enumeration value="B_NEG"/>
-            <xs:enumeration value="AB_POS"/>
-            <xs:enumeration value="AB_NEG"/>
-            <xs:enumeration value="O_POS"/>
-            <xs:enumeration value="O_NEG"/>
-        </xs:restriction>
-    </xs:simpleType>
-
-    <xs:simpleType name="Composant">
-        <xs:restriction base="xs:string">
-            <xs:enumeration value="CGR"/>
-            <xs:enumeration value="PLASMA"/>
-            <xs:enumeration value="PLAQUETTES"/>
-        </xs:restriction>
-    </xs:simpleType>
-
-    <xs:simpleType name="Urgence">
-        <xs:restriction base="xs:string">
-            <xs:enumeration value="NORMALE"/>
-            <xs:enumeration value="HAUTE"/>
-            <xs:enumeration value="CRITIQUE"/>
-        </xs:restriction>
-    </xs:simpleType>
-
-    <!-- ==================== OPERATION 1 : enregistrerPrelevement ==================== -->
-
-    <xs:element name="enregistrerPrelevementRequest">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="donIdLocal" type="xs:string"/>
-                <xs:element name="groupeSanguin" type="tns:GroupeSanguin"/>
-                <xs:element name="volumeMl" type="xs:int"/>
-                <xs:element name="centreId" type="xs:string"/>
-                <xs:element name="datePrelevement" type="xs:date"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-    <xs:element name="enregistrerPrelevementResponse">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="numeroDonNational" type="xs:string"/>
-                <xs:element name="statut" type="xs:string"/>
-                <xs:element maxOccurs="3" minOccurs="1" name="composantsPrevus" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-    <xs:element name="PrelevementInvalideFault">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="code" type="xs:string"/>
-                <xs:element name="message" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-    <!-- ==================== OPERATION 2 : demanderApprovisionnement ==================== -->
-
-    <xs:element name="demanderApprovisionnementRequest">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="hopitalId" type="xs:string"/>
-                <xs:element name="region" type="xs:string"/>
-                <xs:element name="groupeSanguin" type="tns:GroupeSanguin"/>
-                <xs:element name="composant" type="tns:Composant"/>
-                <xs:element name="quantite" type="xs:int"/>
-                <xs:element name="urgence" type="tns:Urgence"/>
-                <xs:element name="demandeId" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-    <xs:element name="demanderApprovisionnementResponse">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="reference" type="xs:string"/>
-                <xs:element name="quantiteAccordee" type="xs:int"/>
-                <xs:element name="centreSource" type="xs:string"/>
-                <xs:element name="delaiMinutes" type="xs:int"/>
-                <xs:element name="statut" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-    <xs:element name="StockCentralInsuffisantFault">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="code" type="xs:string"/>
-                <xs:element name="message" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-    <!-- ==================== OPERATION 3 : delivrerCertificatDon ==================== -->
-
-    <xs:element name="delivrerCertificatDonRequest">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="donIdLocal" type="xs:string"/>
-                <xs:element name="numeroDonNational" type="xs:string"/>
-                <xs:element name="donneurRef" type="xs:string"/>
-                <xs:element name="centreId" type="xs:string"/>
-                <xs:element name="dateDon" type="xs:date"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-    <xs:element name="delivrerCertificatDonResponse">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="numeroCertificat" type="xs:string"/>
-                <xs:element name="dateEmission" type="xs:date"/>
-                <xs:element name="statut" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-    <xs:element name="CertificatRefuseFault">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="code" type="xs:string"/>
-                <xs:element name="message" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
-</xs:schema>
+    <xs:schema>
+      <xs:import namespace="http://iit.tn/soa/cnts" schemaLocation="cnts.xsd"/>
+    </xs:schema>
   </wsdl:types>
-  <wsdl:message name="demanderApprovisionnementRequest">
-    <wsdl:part element="tns:demanderApprovisionnementRequest" name="demanderApprovisionnementRequest">
-    </wsdl:part>
+
+  <!-- ================================================================
+       MESSAGES : un message = un élément du XSD
+       ================================================================ -->
+
+  <!-- Opération 1 : enregistrerPrelevement -->
+  <wsdl:message name="EnregistrerPrelevementRequest">
+    <wsdl:part name="parameters" element="tns:enregistrerPrelevementRequest"/>
   </wsdl:message>
-  <wsdl:message name="enregistrerPrelevementResponse">
-    <wsdl:part element="tns:enregistrerPrelevementResponse" name="enregistrerPrelevementResponse">
-    </wsdl:part>
-  </wsdl:message>
-  <wsdl:message name="StockCentralInsuffisantFault">
-    <wsdl:part element="tns:StockCentralInsuffisantFault" name="StockCentralInsuffisantFault">
-    </wsdl:part>
-  </wsdl:message>
-  <wsdl:message name="CertificatRefuseFault">
-    <wsdl:part element="tns:CertificatRefuseFault" name="CertificatRefuseFault">
-    </wsdl:part>
-  </wsdl:message>
-  <wsdl:message name="demanderApprovisionnementResponse">
-    <wsdl:part element="tns:demanderApprovisionnementResponse" name="demanderApprovisionnementResponse">
-    </wsdl:part>
+  <wsdl:message name="EnregistrerPrelevementResponse">
+    <wsdl:part name="parameters" element="tns:enregistrerPrelevementResponse"/>
   </wsdl:message>
   <wsdl:message name="PrelevementInvalideFault">
-    <wsdl:part element="tns:PrelevementInvalideFault" name="PrelevementInvalideFault">
-    </wsdl:part>
+    <wsdl:part name="fault" element="tns:PrelevementInvalideFault"/>
   </wsdl:message>
-  <wsdl:message name="enregistrerPrelevementRequest">
-    <wsdl:part element="tns:enregistrerPrelevementRequest" name="enregistrerPrelevementRequest">
-    </wsdl:part>
+
+  <!-- Opération 2 : demanderApprovisionnement -->
+  <wsdl:message name="DemanderApprovisionnementRequest">
+    <wsdl:part name="parameters" element="tns:demanderApprovisionnementRequest"/>
   </wsdl:message>
-  <wsdl:message name="delivrerCertificatDonResponse">
-    <wsdl:part element="tns:delivrerCertificatDonResponse" name="delivrerCertificatDonResponse">
-    </wsdl:part>
+  <wsdl:message name="DemanderApprovisionnementResponse">
+    <wsdl:part name="parameters" element="tns:demanderApprovisionnementResponse"/>
   </wsdl:message>
-  <wsdl:message name="delivrerCertificatDonRequest">
-    <wsdl:part element="tns:delivrerCertificatDonRequest" name="delivrerCertificatDonRequest">
-    </wsdl:part>
+  <wsdl:message name="StockCentralInsuffisantFault">
+    <wsdl:part name="fault" element="tns:StockCentralInsuffisantFault"/>
   </wsdl:message>
-  <wsdl:portType name="CntsPort">
-    <wsdl:operation name="demanderApprovisionnement">
-      <wsdl:input message="tns:demanderApprovisionnementRequest" name="demanderApprovisionnementRequest">
-    </wsdl:input>
-      <wsdl:output message="tns:demanderApprovisionnementResponse" name="demanderApprovisionnementResponse">
-    </wsdl:output>
-    </wsdl:operation>
+
+  <!-- Opération 3 : delivrerCertificatDon -->
+  <wsdl:message name="DelivrerCertificatDonRequest">
+    <wsdl:part name="parameters" element="tns:delivrerCertificatDonRequest"/>
+  </wsdl:message>
+  <wsdl:message name="DelivrerCertificatDonResponse">
+    <wsdl:part name="parameters" element="tns:delivrerCertificatDonResponse"/>
+  </wsdl:message>
+  <wsdl:message name="CertificatRefuseFault">
+    <wsdl:part name="fault" element="tns:CertificatRefuseFault"/>
+  </wsdl:message>
+
+  <!-- ================================================================
+       PORT TYPE : interface abstraite du service
+       Chaque opération déclare ses faults possibles ici
+       ================================================================ -->
+  <wsdl:portType name="CntsPortType">
+
+    <!-- Opération 1 -->
     <wsdl:operation name="enregistrerPrelevement">
-      <wsdl:input message="tns:enregistrerPrelevementRequest" name="enregistrerPrelevementRequest">
-    </wsdl:input>
-      <wsdl:output message="tns:enregistrerPrelevementResponse" name="enregistrerPrelevementResponse">
-    </wsdl:output>
+      <wsdl:input  message="tns:EnregistrerPrelevementRequest"/>
+      <wsdl:output message="tns:EnregistrerPrelevementResponse"/>
+      <wsdl:fault  name="PrelevementInvalide"
+                   message="tns:PrelevementInvalideFault"/>
     </wsdl:operation>
-    <wsdl:operation name="StockCentralInsuffisant">
-      <wsdl:fault message="tns:StockCentralInsuffisantFault" name="StockCentralInsuffisantFault">
-    </wsdl:fault>
+
+    <!-- Opération 2 -->
+    <wsdl:operation name="demanderApprovisionnement">
+      <wsdl:input  message="tns:DemanderApprovisionnementRequest"/>
+      <wsdl:output message="tns:DemanderApprovisionnementResponse"/>
+      <wsdl:fault  name="StockCentralInsuffisant"
+                   message="tns:StockCentralInsuffisantFault"/>
     </wsdl:operation>
-    <wsdl:operation name="CertificatRefuse">
-      <wsdl:fault message="tns:CertificatRefuseFault" name="CertificatRefuseFault">
-    </wsdl:fault>
-    </wsdl:operation>
-    <wsdl:operation name="PrelevementInvalide">
-      <wsdl:fault message="tns:PrelevementInvalideFault" name="PrelevementInvalideFault">
-    </wsdl:fault>
-    </wsdl:operation>
+
+    <!-- Opération 3 -->
     <wsdl:operation name="delivrerCertificatDon">
-      <wsdl:input message="tns:delivrerCertificatDonRequest" name="delivrerCertificatDonRequest">
-    </wsdl:input>
-      <wsdl:output message="tns:delivrerCertificatDonResponse" name="delivrerCertificatDonResponse">
-    </wsdl:output>
+      <wsdl:input  message="tns:DelivrerCertificatDonRequest"/>
+      <wsdl:output message="tns:DelivrerCertificatDonResponse"/>
+      <wsdl:fault  name="CertificatRefuse"
+                   message="tns:CertificatRefuseFault"/>
     </wsdl:operation>
+
   </wsdl:portType>
-  <wsdl:binding name="CntsPortSoap11" type="tns:CntsPort">
+
+  <!-- ================================================================
+       BINDING : comment les messages sont transportés (SOAP 1.1)
+       Chaque fault du portType est répété ici avec soap:fault
+       ================================================================ -->
+  <wsdl:binding name="CntsPortSoap11" type="tns:CntsPortType">
     <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
-    <wsdl:operation name="demanderApprovisionnement">
-      <soap:operation soapAction=""/>
-      <wsdl:input name="demanderApprovisionnementRequest">
-        <soap:body use="literal"/>
-      </wsdl:input>
-      <wsdl:output name="demanderApprovisionnementResponse">
-        <soap:body use="literal"/>
-      </wsdl:output>
-    </wsdl:operation>
+
+    <!-- Opération 1 -->
     <wsdl:operation name="enregistrerPrelevement">
       <soap:operation soapAction=""/>
-      <wsdl:input name="enregistrerPrelevementRequest">
+      <wsdl:input>
         <soap:body use="literal"/>
       </wsdl:input>
-      <wsdl:output name="enregistrerPrelevementResponse">
+      <wsdl:output>
         <soap:body use="literal"/>
       </wsdl:output>
-    </wsdl:operation>
-    <wsdl:operation name="StockCentralInsuffisant">
-      <soap:operation soapAction=""/>
-      <wsdl:fault name="StockCentralInsuffisantFault">
-        <soap:fault name="StockCentralInsuffisantFault" use="literal"/>
+      <wsdl:fault name="PrelevementInvalide">
+        <soap:fault name="PrelevementInvalide" use="literal"/>
       </wsdl:fault>
     </wsdl:operation>
-    <wsdl:operation name="CertificatRefuse">
+
+    <!-- Opération 2 -->
+    <wsdl:operation name="demanderApprovisionnement">
       <soap:operation soapAction=""/>
-      <wsdl:fault name="CertificatRefuseFault">
-        <soap:fault name="CertificatRefuseFault" use="literal"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="StockCentralInsuffisant">
+        <soap:fault name="StockCentralInsuffisant" use="literal"/>
       </wsdl:fault>
     </wsdl:operation>
-    <wsdl:operation name="PrelevementInvalide">
-      <soap:operation soapAction=""/>
-      <wsdl:fault name="PrelevementInvalideFault">
-        <soap:fault name="PrelevementInvalideFault" use="literal"/>
-      </wsdl:fault>
-    </wsdl:operation>
+
+    <!-- Opération 3 -->
     <wsdl:operation name="delivrerCertificatDon">
       <soap:operation soapAction=""/>
-      <wsdl:input name="delivrerCertificatDonRequest">
+      <wsdl:input>
         <soap:body use="literal"/>
       </wsdl:input>
-      <wsdl:output name="delivrerCertificatDonResponse">
+      <wsdl:output>
         <soap:body use="literal"/>
       </wsdl:output>
+      <wsdl:fault name="CertificatRefuse">
+        <soap:fault name="CertificatRefuse" use="literal"/>
+      </wsdl:fault>
     </wsdl:operation>
+
   </wsdl:binding>
-  <wsdl:service name="CntsPortService">
-    <wsdl:port binding="tns:CntsPortSoap11" name="CntsPortSoap11">
+
+  <!-- ================================================================
+       SERVICE : adresse physique du endpoint
+       ================================================================ -->
+  <wsdl:service name="CntsService">
+    <wsdl:port name="CntsPortSoap11" binding="tns:CntsPortSoap11">
       <soap:address location="http://localhost:8084/ws"/>
     </wsdl:port>
   </wsdl:service>
+
 </wsdl:definitions>
