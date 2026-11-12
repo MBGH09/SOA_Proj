@@ -1,28 +1,28 @@
 server:
   port: 8084
 
+# =============================================================================
+# Configuration par défaut = PostgreSQL (production / Docker)
+# Les variables d'environnement SPRING_DATASOURCE_* sont obligatoires.
+# Pour le dev local sans Docker, activer le profil "h2" :
+#   mvn spring-boot:run -Dspring-boot.run.profiles=h2
+# =============================================================================
 spring:
   datasource:
-    # Production (Docker) : variables d'environnement obligatoires
-    # Dev local (H2)      : valeurs par défaut utilisées automatiquement
-    url:              ${SPRING_DATASOURCE_URL:jdbc:h2:mem:cntsdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
-    username:         ${SPRING_DATASOURCE_USERNAME:sa}
-    password:         ${SPRING_DATASOURCE_PASSWORD:}
-    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+    url:              ${SPRING_DATASOURCE_URL}
+    username:         ${SPRING_DATASOURCE_USERNAME}
+    password:         ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      # Flyway gère le schéma → Hibernate ne doit pas modifier les tables
-      ddl-auto: none
+      ddl-auto: none        # Flyway gère le schéma, pas Hibernate
     show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
-    # Activé par défaut → les migrations s'exécutent en production (PostgreSQL).
-    # Pour désactiver en dev local H2, passer FLYWAY_ENABLED=false en variable d'env
-    # ou utiliser le profil Spring "h2" (voir ci-dessous).
-    enabled: ${FLYWAY_ENABLED:true}
+    enabled: true
     locations: classpath:db/migration
-    # baseline-on-migrate : sécurité si la DB existe déjà sans table flyway_schema_history
     baseline-on-migrate: true
 
 management:
@@ -31,7 +31,7 @@ management:
       exposure:
         include: health
 
-# Simulation switches (S5-09 — utilisés par Student 7 pour les démos)
+# Simulation switches (S5-09)
 cnts:
   latency-ms:            ${CNTS_LATENCY_MS:0}
   fail-rate:             ${CNTS_FAIL_RATE:0.0}
@@ -40,14 +40,27 @@ cnts:
   delai-critique-minutes: 15
 
 ---
-# Profil "h2" : dev local sans Docker
+# =============================================================================
+# Profil "h2" : développement local sans Docker
 # Lancer avec : mvn spring-boot:run -Dspring-boot.run.profiles=h2
+# =============================================================================
 spring:
   config:
     activate:
       on-profile: h2
-  flyway:
-    enabled: false   # H2 ne supporte pas toutes les syntaxes PostgreSQL de Flyway
+
+  datasource:
+    url:              jdbc:h2:mem:cntsdb;DB_CLOSE_DELAY=-1
+    username:         sa
+    password:
+    driver-class-name: org.h2.Driver
+
   jpa:
     hibernate:
-      ddl-auto: create-drop   # H2 crée les tables depuis les entités JPA
+      # H2 crée les tables depuis les entités JPA (pas de Flyway)
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  flyway:
+    # Flyway OFF sur H2 : les migrations sont en syntaxe PostgreSQL
+    enabled: false
