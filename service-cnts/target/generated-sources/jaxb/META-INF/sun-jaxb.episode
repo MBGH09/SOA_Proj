@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bindings version="3.0" xmlns="https://jakarta.ee/xml/ns/jaxb">
+  <!--
+
+Ce fichier a été généré par Eclipse Implementation of JAXB, v4.0.5 
+Voir https://eclipse-ee4j.github.io/jaxb-ri 
+Toute modification apportée à ce fichier sera perdue lors de la recompilation du schéma source. 
+Généré le : 2026.11.12 à 11:15:46 PM CET
+  -->
+  <bindings scd="x-schema::tns" if-exists="true" auto-acknowledge="true" xmlns:tns="http://iit.tn/soa/cnts">
+    <schemaBindings map="false">
+      <package name="tn.iit.blood.cnts.ws.generated"/>
+    </schemaBindings>
+    <bindings scd="tns:enregistrerPrelevementRequest" if-exists="true" auto-acknowledge="true">
+      <class ref="tn.iit.blood.cnts.ws.generated.EnregistrerPrelevementRequest"/>
+    </bindings>
+    <bindings scd="tns:enregistrerPrelevementResponse" if-exists="true" auto-acknowledge="true">
+      <class ref="tn.iit.blood.cnts.ws.generated.EnregistrerPrelevementResponse"/>
+    </bindings>
+    <bindings scd="tns:PrelevementInvalideFault" if-exists="true" auto-acknowledge="true">
+      <class ref="tn.iit.blood.cnts.ws.generated.PrelevementInvalideFault"/>
+    </bindings>
+    <bindings scd="tns:demanderApprovisionnementRequest" if-exists="true" auto-acknowledge="true">
+      <class ref="tn.iit.blood.cnts.ws.generated.DemanderApprovisionnementRequest"/>
+    </bindings>
+    <bindings scd="tns:demanderApprovisionnementResponse" if-exists="true" auto-acknowledge="true">
+      <class ref="tn.iit.blood.cnts.ws.generated.DemanderApprovisionnementResponse"/>
+    </bindings>
+    <bindings scd="tns:StockCentralInsuffisantFault" if-exists="true" auto-acknowledge="true">
+      <class ref="tn.iit.blood.cnts.ws.generated.StockCentralInsuffisantFault"/>
+    </bindings>
+    <bindings scd="tns:delivrerCertificatDonRequest" if-exists="true" auto-acknowledge="true">
+      <class ref="tn.iit.blood.cnts.ws.generated.DelivrerCertificatDonRequest"/>
+    </bindings>
+    <bindings scd="tns:delivrerCertificatDonResponse" if-exists="true" auto-acknowledge="true">
+      <class ref="tn.iit.blood.cnts.ws.generated.DelivrerCertificatDonResponse"/>
+    </bindings>
+    <bindings scd="tns:CertificatRefuseFault" if-exists="true" auto-acknowledge="true">
+      <class ref="tn.iit.blood.cnts.ws.generated.CertificatRefuseFault"/>
+    </bindings>
+    <bindings scd="~tns:GroupeSanguin" if-exists="true" auto-acknowledge="true">
+      <typesafeEnumClass ref="tn.iit.blood.cnts.ws.generated.GroupeSanguin"/>
+    </bindings>
+    <bindings scd="~tns:Composant" if-exists="true" auto-acknowledge="true">
+      <typesafeEnumClass ref="tn.iit.blood.cnts.ws.generated.Composant"/>
+    </bindings>
+    <bindings scd="~tns:Urgence" if-exists="true" auto-acknowledge="true">
+      <typesafeEnumClass ref="tn.iit.blood.cnts.ws.generated.Urgence"/>
+    </bindings>
+  </bindings>
+</bindings>
+
