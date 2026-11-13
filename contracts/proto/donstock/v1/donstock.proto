@@ -2,225 +2,242 @@ syntax = "proto3";
 
 package donstock.v1;
 
-option java_package = "com.donstock.v1";
+// Java package must match the imports used throughout service-don-stock.
+option java_package = "tn.iit.blood.donstock.v1";
 option java_multiple_files = true;
 
-// --- Enums ---
+// =============================================================
+// Enums
+// =============================================================
 
-// Represents the 8 main human blood groups.
-enum BloodGroup {
-  BLOOD_GROUP_UNSPECIFIED = 0; // Default fallback value
-  BLOOD_GROUP_A_POSITIVE = 1;
-  BLOOD_GROUP_A_NEGATIVE = 2;
-  BLOOD_GROUP_B_POSITIVE = 3;
-  BLOOD_GROUP_B_NEGATIVE = 4;
-  BLOOD_GROUP_AB_POSITIVE = 5;
-  BLOOD_GROUP_AB_NEGATIVE = 6;
-  BLOOD_GROUP_O_POSITIVE = 7;
-  BLOOD_GROUP_O_NEGATIVE = 8;
+// 8 ABO/Rh blood groups.  UNSPECIFIED = 0 is the proto3 default.
+enum GroupeSanguin {
+  GROUPE_SANGUIN_UNSPECIFIED = 0;
+  A_POS  = 1;
+  A_NEG  = 2;
+  B_POS  = 3;
+  B_NEG  = 4;
+  AB_POS = 5;
+  AB_NEG = 6;
+  O_POS  = 7;
+  O_NEG  = 8;
 }
 
-// Type of blood component laboratory product.
-enum Component {
-  COMPONENT_UNSPECIFIED = 0; // Default fallback value
-  COMPONENT_CGR = 1;         // Concentré de Globules Rouges (Packed Red Blood Cells)
-  COMPONENT_PLASMA = 2;      // Plasma
-  COMPONENT_PLAQUETTES = 3;  // Plaquettes (Platelets)
+// Blood component extracted from a donation.
+enum Composant {
+  COMPOSANT_UNSPECIFIED = 0;
+  CGR        = 1;   // Concentré de Globules Rouges
+  PLASMA     = 2;
+  PLAQUETTES = 3;
 }
 
-// Level of clinical urgency for the reservation request.
-enum Urgency {
-  URGENCY_UNSPECIFIED = 0; // Default fallback value
-  URGENCY_LOW = 1;
-  URGENCY_MEDIUM = 2;
-  URGENCY_HIGH = 3;
+// Clinical urgency of a hospital request.
+enum Urgence {
+  URGENCE_UNSPECIFIED = 0;
+  NORMALE  = 1;
+  HAUTE    = 2;
+  CRITIQUE = 3;
 }
 
-// Current status tracking a matching or allocation request.
-enum ReservationStatus {
-  RESERVATION_STATUS_UNSPECIFIED = 0; // Default fallback value
-  RESERVATION_STATUS_RESERVEE_STOCK_LOCAL = 1;
-  RESERVATION_STATUS_APPROVISIONNEMENT_COMMANDE = 2;
-  RESERVATION_STATUS_STOCK_INSUFFISANT_PARTOUT = 3;
-  RESERVATION_STATUS_LIVREE = 4;                   // Gap 4 feature
-  RESERVATION_STATUS_EN_ATTENTE_CONFIRMATION = 5;  // Gap 4 feature
+// Lifecycle state of a blood-unit reservation.
+// demande_id is the idempotency key (see VerifierEtReserverRequest).
+// Gap 4 adds LIVREE and EN_ATTENTE_CONFIRMATION.
+enum StatutReservation {
+  STATUT_RESERVATION_UNSPECIFIED    = 0;
+  RESERVEE_STOCK_LOCAL              = 1;  // local bank had enough stock
+  APPROVISIONNEMENT_COMMANDE        = 2;  // central order placed via CNTS SOAP
+  STOCK_INSUFFISANT_PARTOUT         = 3;  // neither local nor central could supply
+  LIVREE                            = 4;  // delivery simulator confirmed arrival
+  EN_ATTENTE_CONFIRMATION           = 5;  // SOAP not reachable, stored as A_CONFIRMER
 }
 
-// Categorized safety status of stock volumes.
-enum Level {
-  LEVEL_UNSPECIFIED = 0; // Default fallback value
-  LEVEL_BAS = 1;         // Low stock alert level
-  LEVEL_MOYEN = 2;       // Stable inventory level
-  LEVEL_HAUT = 3;        // Optimal/High inventory level
+// Safety level derived from seuil_alerte (configurable threshold).
+enum Niveau {
+  NIVEAU_UNSPECIFIED = 0;
+  BAS    = 1;  // disponible <= seuil_alerte
+  MOYEN  = 2;  // disponible <= 2 * seuil_alerte
+  HAUT   = 3;  // disponible >  2 * seuil_alerte
 }
 
-// --- Service ---
+// =============================================================
+// Service
+// =============================================================
 
 service DonStockService {
-  // Verifies stock availability and creates a reservation.
-  // Returns:
-  //   - INVALID_ARGUMENT (3): if invalid parameters or missing required IDs are passed
-  //   - RESOURCE_EXHAUSTED (8): if allocations fail due to physical system limits
-  rpc VerifierEtReserver (VerifierEtReserverRequest) returns (VerifierEtReserverResponse);
 
-  // Retrieves detail info of an existing reservation.
-  // Returns:
-  //   - NOT_FOUND (5): if the given reservation_id does not exist
-  //   - INVALID_ARGUMENT (3): if tracking ID validation fails
-  rpc ConsulterReservation (ConsulterReservationRequest) returns (ConsulterReservationResponse);
+  // Verifies local stock and either reserves locally or triggers a CNTS SOAP
+  // order (central path).  Idempotency key: demande_id.
+  // Errors: INVALID_ARGUMENT (bad params), NOT_FOUND (unknown lieu_id),
+  //         UNAVAILABLE (CNTS down, order stored as A_CONFIRMER).
+  rpc VerifierEtReserver (VerifierEtReserverRequest)
+      returns (VerifierEtReserverResponse);
 
-  // Logs a new blood collection activity into the main registry.
-  // Returns:
-  //   - INVALID_ARGUMENT (3): if format validation checks fail
-  //   - ALREADY_EXISTS (6): if the collection context or idempotency key is already tracked
-  rpc EnregistrerPrelevement (EnregistrerPrelevementRequest) returns (EnregistrerPrelevementResponse);
+  // Returns the stored answer for a previous VerifierEtReserver call.
+  // Errors: NOT_FOUND (unknown demande_id).
+  // Used by service-demandes reconciliation job.
+  rpc ConsulterReservation (ConsulterReservationRequest)
+      returns (ConsulterReservationResponse);
 
-  // Generates and provides an official digital donation certificate summary.
-  // Returns:
-  //   - NOT_FOUND (5): if donor_id or prelevement_id mismatch records
-  //   - INVALID_ARGUMENT (3): if validation checks fail
-  rpc DelivrerCertificat (DelivrerCertificatRequest) returns (DelivrerCertificatResponse);
+  // Declares a collected blood pouch to CNTS via SOAP.
+  // Idempotency key: don_id — a repeated call returns the same national number.
+  // Errors: INVALID_ARGUMENT (volume != 450, unknown group), UNAVAILABLE (CNTS down).
+  rpc EnregistrerPrelevement (EnregistrerPrelevementRequest)
+      returns (EnregistrerPrelevementResponse);
 
-  // Server streaming RPC providing reactive inventory tracking updates.
-  // Returns:
-  //   - INVALID_ARGUMENT (3): if filter rules are structured incorrectly
-  rpc SuivreNiveauxStock (SuivreNiveauxStockRequest) returns (stream SuivreNiveauxStockResponse);
+  // Requests a donation certificate from CNTS for a qualified pouch.
+  // Idempotency key: don_id.
+  // Errors: NOT_FOUND (unknown don_id), FAILED_PRECONDITION (no national number yet),
+  //         UNAVAILABLE (CNTS down).
+  rpc DelivrerCertificat (DelivrerCertificatRequest)
+      returns (DelivrerCertificatResponse);
+
+  // Server-streaming RPC: sends a full snapshot on subscription, then one
+  // NiveauStockMessage per stock change committed to the database.
+  // Optional filters: lieu_id and groupe_sanguin.
+  // Errors: INVALID_ARGUMENT (malformed filters).
+  rpc SuivreNiveauxStock (SuivreNiveauxStockRequest)
+      returns (stream NiveauStockMessage);
 }
 
-// --- Messages ---
+// =============================================================
+// Messages – VerifierEtReserver
+// =============================================================
 
 message VerifierEtReserverRequest {
-  // Unique idempotency key tracking this verification and booking request event.
-  string demande_id = 1;
-  
-  // Target blood group required.
-  BloodGroup blood_group = 2;
-  
-  // Specific type of blood component requested.
-  Component component = 3;
-  
-  // Number of units required.
-  int32 quantity = 4;
-  
-  // Priority status of the reservation request.
-  Urgency urgency = 5;
-  
-  // Unique identification reference for the patient.
-  string patient_id = 6;
+  // Idempotency key: the hospital request id from service-demandes.
+  string demande_id    = 1;
+
+  // Target place (hospital bank or clinic).  Must exist in lieu table.
+  string lieu_id       = 2;
+
+  // Required blood group.
+  GroupeSanguin groupe_sanguin = 3;
+
+  // Required blood component.
+  Composant composant  = 4;
+
+  // Number of pouches requested.  Must be >= 1.
+  int32  quantite      = 5;
+
+  // Clinical urgency — influences CNTS delivery priority.
+  Urgence urgence      = 6;
 }
 
 message VerifierEtReserverResponse {
-  // Unique system tracking reference assigned to the successful/pending reservation.
-  string reservation_id = 1;
-  
-  // Current transactional lifecycle state of the reservation.
-  ReservationStatus status = 2;
-  
-  // Expected timeframe text indicating when components will be fully ready.
-  string estimated_delivery_time = 3; 
+  // Final or provisional status of the reservation.
+  StatutReservation statut       = 1;
+
+  // CNTS reference number (filled when APPROVISIONNEMENT_COMMANDE).
+  string            reference    = 2;
+
+  // Name of the supplying centre (filled when APPROVISIONNEMENT_COMMANDE).
+  string            centre_source = 3;
+
+  // Estimated delivery time in minutes (filled when APPROVISIONNEMENT_COMMANDE).
+  int32             eta_minutes  = 4;
 }
 
+// =============================================================
+// Messages – ConsulterReservation
+// =============================================================
+
 message ConsulterReservationRequest {
-  // Targeted reservation identifier to look up.
-  string reservation_id = 1;
+  // Idempotency key used in the original VerifierEtReserver call.
+  string demande_id = 1;
 }
 
 message ConsulterReservationResponse {
-  // Unique system tracking reference assigned to the reservation.
-  string reservation_id = 1;
-  
-  // Blood group allocated or requested.
-  BloodGroup blood_group = 2;
-  
-  // Blood component type allocated or requested.
-  Component component = 3;
-  
-  // Total item count locked by the request.
-  int32 quantity = 4;
-  
-  // Transactional lifecycle state matching this target reservation.
-  ReservationStatus status = 5;
+  string            demande_id   = 1;
+  StatutReservation statut       = 2;
+  string            reference    = 3;
+  string            centre_source = 4;
+  int32             eta_minutes  = 5;
 }
 
-message EnregistrerPrelevementRequest {
-  // Unique idempotency key tracking this particular donation event.
-  string don_id = 1;
+// =============================================================
+// Messages – EnregistrerPrelevement
+// =============================================================
 
-  // Internal user record tracking ID of the corresponding donor entity.
-  string donor_id = 2;
-  
-  // Primary blood type determined for the specific collection.
-  BloodGroup blood_group = 3;
-  
-  // Derived product type extracted from the collection.
-  Component component = 4;
-  
-  // Measured aggregate fluid volume registered in milliliters.
-  int32 volume_ml = 5;
-  
-  // Timestamp string recording when extraction occurred.
-  string prelevement_date = 6;
+message EnregistrerPrelevementRequest {
+  // Idempotency key: local donation id from service-donneurs.
+  string don_id          = 1;
+
+  // Internal donor reference (no health data, only the donor id).
+  string donneur_id      = 2;
+
+  // The collecting centre id.
+  string centre_id       = 3;
+
+  // Blood group determined for this collection.
+  GroupeSanguin groupe_sanguin = 4;
+
+  // Must equal VOLUME_PRELEVEMENT_ML (450 ml).
+  int32  volume_ml       = 5;
+
+  // ISO-8601 date string of the collection.
+  string date_prelevement = 6;
 }
 
 message EnregistrerPrelevementResponse {
-  // System tracking reference generated for this individual valid extraction record.
-  string prelevement_id = 1;
-  
-  // Status flag reporting processing result outcome.
-  bool success = 2;
-  
-  // Human readable informational status text detailing response outcomes or failures.
-  string message = 3;
+  // CNTS-issued national donation number (filled on success).
+  string numero_don_national = 1;
+
+  // Processing status: QUALIFICATION_EN_COURS, QUALIFIE, A_DECLARER …
+  string statut              = 2;
 }
 
+// =============================================================
+// Messages – DelivrerCertificat
+// =============================================================
+
 message DelivrerCertificatRequest {
-  // Targeted reference id representing the validated donor profile.
-  string donor_id = 1;
-  
-  // Targeted reference id representing the related successfully processed donation event.
-  string prelevement_id = 2;
+  // Idempotency key: local donation id.
+  string don_id               = 1;
+
+  // CNTS national donation number (must be non-blank).
+  string numero_don_national  = 2;
+
+  // Donor reference sent to CNTS (donor id only, never name or health data).
+  string donneur_ref          = 3;
+
+  // The collecting centre id.
+  string centre_id            = 4;
+
+  // ISO-8601 date of the donation.
+  string date_don             = 5;
 }
 
 message DelivrerCertificatResponse {
-  // Unique tracking checksum reference generated for this official document asset.
-  string certificate_id = 1;
-  
-  // Official registered identity text matching the verified donor.
-  string donor_name = 2;
-  
-  // Timestamp string reporting when this official copy was printed/rendered.
-  string issue_date = 3;
-  
-  // Structured descriptive body statement detailing metadata inside the certificate.
-  string certificate_content = 4;
+  // CNTS-issued unique certificate number.
+  string numero_certificat = 1;
+
+  // ISO-8601 date the certificate was issued.
+  string date_emission     = 2;
+
+  // Status of the certificate: VALIDE or REFUSE.
+  string statut            = 3;
 }
+
+// =============================================================
+// Messages – SuivreNiveauxStock
+// =============================================================
 
 message SuivreNiveauxStockRequest {
-  // Optional criteria allowing real-time tracking streams to limit output to specific blood types.
-  repeated BloodGroup filter_blood_groups = 1;
-  
-  // Optional criteria allowing real-time tracking streams to limit output to specific product types.
-  repeated Component filter_components = 2;
+  // Optional: restrict the stream to one place.
+  string        lieu_id        = 1;
+
+  // Optional: restrict the stream to one blood group (UNSPECIFIED = no filter).
+  GroupeSanguin groupe_sanguin = 2;
 }
 
-message StockLevelUpdate {
-  // Evaluated target item group.
-  BloodGroup blood_group = 1;
-  
-  // Evaluated target item component.
-  Component component = 2;
-  
-  // Exact count of verified available units in inventory.
-  int32 current_quantity = 3;
-  
-  // Discovered risk category indicating current safety margins.
-  Level level = 4;
-}
-
-message SuivreNiveauxStockResponse {
-  // Set of current status updates indicating current unit levels across categories.
-  repeated StockLevelUpdate updates = 1;
-  
-  // System timestamp string marking when this message package payload was dispatched.
-  string timestamp = 2;
+// One message per (lieu, groupe_sanguin, composant) row that changed.
+message NiveauStockMessage {
+  string        lieu_id       = 1;
+  string        lieu_nom      = 2;
+  GroupeSanguin groupe_sanguin = 3;
+  Composant     composant     = 4;
+  int32         disponible    = 5;
+  int32         reserve       = 6;
+  int32         en_transit    = 7;
+  Niveau        niveau        = 8;
 }

@@ -1,0 +1,291 @@
+================================================================
+  SERVICE-DON-STOCK  –  Student 4 (gRPC)
+  What was done by Kiro AI
+  Date: 2026-11-12
+================================================================
+
+----------------------------------------------------------------
+1. JAVA UPGRADE: 17 → 21
+----------------------------------------------------------------
+Files changed:
+  - pom.xml                              java.version = 21
+  - .classpath                           JRE_CONTAINER → JavaSE-21
+  - .settings/org.eclipse.jdt.core.prefs compiler source/target/compliance = 21
+
+ACTION NEEDED IN ECLIPSE:
+  Right-click project → Maven → Update Project (Alt+F5)
+
+----------------------------------------------------------------
+2. POM.XML – Full rewrite
+----------------------------------------------------------------
+Problems fixed:
+  - Spring Boot was 4.1.2 (does not exist) → fixed to 3.3.5
+  - artifactId was "service-cnts"         → fixed to "service-don-stock"
+  - packaging was "war"                   → fixed to "jar"
+  - Spring Cloud was 2025.1.4 (wrong)     → fixed to 2023.0.3
+  - All fake spring-boot-starter-*-test   → removed
+  - Added grpc-server-spring-boot-starter 3.1.0 (net.devh, Boot 3 compatible)
+  - Added grpc-stub, grpc-protobuf, protobuf-java runtime
+  - Added spring-boot-starter-web-services (SOAP client for call 3)
+  - Added jakarta.xml.bind + jaxb-impl 4.x (jakarta.*, not javax.*)
+  - Added resilience4j-spring-boot3 + AOP
+  - Configured xolstice protobuf-maven-plugin 0.6.1
+      reads proto files from: ../contracts/proto
+      downloads protoc + grpc-java plugin automatically
+  - Configured jaxb-maven-plugin 4.0.8
+      reads cnts.xsd from: ../contracts/wsdl-xsd (for S4-12)
+  - Resilience4j BOM 2.2.0 added to dependencyManagement
+
+----------------------------------------------------------------
+3. S4-01 – donstock.proto (contract file)
+----------------------------------------------------------------
+Location: d:\eclipse-workspace\contracts\proto\donstock\v1\donstock.proto
+
+Contents:
+  Enums:
+    - GroupeSanguin  (A_POS, A_NEG, B_POS, B_NEG, AB_POS, AB_NEG, O_POS, O_NEG)
+    - Composant      (CGR, PLASMA, PLAQUETTES)
+    - Urgence        (NORMALE, HAUTE, CRITIQUE)
+    - StatutReservation (RESERVEE_STOCK_LOCAL, APPROVISIONNEMENT_COMMANDE,
+                         STOCK_INSUFFISANT_PARTOUT, EN_ATTENTE_CONFIRMATION, LIVREE)
+    - Niveau         (BAS, MOYEN, HAUT)
+
+  5 RPCs in service DonStockService:
+    - VerifierEtReserver       (unary)   – idempotency key: demande_id
+    - ConsulterReservation     (unary)   – used by Demandes reconciliation job
+    - EnregistrerPrelevement   (unary)   – idempotency key: don_id
+    - DelivrerCertificat       (unary)   – idempotency key: don_id
+    - SuivreNiveauxStock       (server streaming) – live stock dashboard
+
+  Every enum has UNSPECIFIED = 0 as required by protobuf best practices.
+  Comments explain idempotency keys and possible gRPC status codes.
+
+----------------------------------------------------------------
+4. S4-02 – Project skeleton
+----------------------------------------------------------------
+application.properties configured with:
+  - server.port=8083          (Actuator / HTTP)
+  - grpc.server.port=9090     (gRPC)
+  - DB from env vars: SPRING_DATASOURCE_URL / USERNAME / PASSWORD
+    default: jdbc:postgresql://localhost:5433/stock-db
+  - CNTS_URL (default http://service-cnts:8084/ws)
+  - SOAP_TIMEOUT_MS=3000
+  - Resilience4j circuit breaker + retry for "cnts" instance
+  - Business settings: VOLUME_PRELEVEMENT_ML, RETRY_JOBS_INTERVAL_SEC,
+    DELAI_LIVRAISON_SEC, DELAI_QUALIFICATION_SEC
+
+Main application class updated:
+  - Added @EnableScheduling (needed by simulator jobs)
+
+----------------------------------------------------------------
+5. S4-03 – Flyway schema and seed
+----------------------------------------------------------------
+V1__init.sql – 4 tables:
+  - lieu           (id, nom, type, region, stock_local)
+  - stock_niveau   (lieu_id + groupe_sanguin + composant = composite PK,
+                    disponible, reserve, en_qualification, en_transit, seuil_alerte)
+  - reservation    (demande_id UNIQUE – idempotency key,
+                    statut, reference, centre_source, eta_minutes)
+  - prelevement    (don_id UNIQUE – idempotency key,
+                    statut, numero_don_national, numero_certificat, date_certificat)
+
+V2__seed.sql – 6 lieux seeded:
+  - CNTS Tunis              (stock_local=true,  high stock)
+  - CRTS Sfax               (stock_local=true,  medium stock)
+  - CHU Habib Bourguiba Sfax(stock_local=true,  O_NEG intentionally LOW = 3)
+  - CHU Hedi Chaker Sfax    (stock_local=true,  AB_NEG intentionally LOW = 2)
+  - Clinique Exemple Sfax   (stock_local=false, no stock rows)
+  - Collecte Mobile CRTS    (stock_local=false, no stock rows)
+  Each place with stock has 24 rows (8 groups x 3 components).
+
+----------------------------------------------------------------
+6. S4-04 – VerifierEtReserver (local path)
+----------------------------------------------------------------
+File: grpc/DonStockGrpcService.java
+
+Flow:
+  1. Validate quantity >= 1, groupe, composant, urgence → INVALID_ARGUMENT
+  2. Check lieu exists                                  → NOT_FOUND
+  3. Idempotency: if demande_id already exists, return stored answer
+  4. If lieu.stock_local = true:
+       Lock stock row (SELECT FOR UPDATE / PESSIMISTIC_WRITE)
+       If disponible >= quantite:
+         disponible -= quantite, reserve += quantite
+         Save reservation as RESERVEE_STOCK_LOCAL
+         Publish StockChangeEvent → stream subscribers notified
+  5. If local stock insufficient → central path (S4-05)
+
+----------------------------------------------------------------
+7. S4-05 – Central path stub
+----------------------------------------------------------------
+File: grpc/DonStockGrpcService.java  +  scheduler/RetryConfirmerJob.java
+
+For now:
+  - Saves reservation as "A_CONFIRMER"
+  - Returns UNAVAILABLE to caller
+  - RetryConfirmerJob runs every RETRY_JOBS_INTERVAL_SEC
+  - Full SOAP call will be wired in S4-12 (when Student 5 merges cnts.xsd)
+  - Each retry carries the same demandeId (idempotent per gap 5)
+
+----------------------------------------------------------------
+8. S4-06 – Delivery simulator
+----------------------------------------------------------------
+File: scheduler/DeliverySimulatorJob.java
+
+  - Runs every DELAI_LIVRAISON_SEC seconds (default 30)
+  - Finds APPROVISIONNEMENT_COMMANDE reservations older than the delay
+  - Moves en_transit → reserve for each one
+  - Sets reservation status to LIVREE
+  - Publishes StockChangeEvent so live dashboard updates
+
+----------------------------------------------------------------
+9. S4-07 – EnregistrerPrelevement
+----------------------------------------------------------------
+File: grpc/DonStockGrpcService.java
+
+Flow:
+  1. Validate volume_ml == 450, groupe_sanguin set → INVALID_ARGUMENT
+  2. Idempotency by don_id:
+       If exists and A_DECLARER → retry SOAP call
+       If exists and other status → return stored answer
+  3. Insert row as A_DECLARER
+  4. Call SOAP enregistrerPrelevement (stubbed until S4-12)
+       On success: numero_don_national saved, status → QUALIFICATION_EN_COURS
+                   en_qualification += 1 for each component at the centre
+       On failure: stays A_DECLARER, returns UNAVAILABLE
+
+----------------------------------------------------------------
+10. S4-08 – Qualification simulator
+----------------------------------------------------------------
+File: scheduler/QualificationSimulatorJob.java
+
+  - Runs every DELAI_QUALIFICATION_SEC seconds (default 20)
+  - Finds QUALIFICATION_EN_COURS prelèvements older than the delay
+  - For each component (CGR, PLASMA, PLAQUETTES):
+      en_qualification -= 1, disponible += 1
+  - Sets status to QUALIFIE
+  - Publishes StockChangeEvent
+
+----------------------------------------------------------------
+11. S4-09 – ConsulterReservation + DelivrerCertificat
+----------------------------------------------------------------
+File: grpc/DonStockGrpcService.java
+
+ConsulterReservation:
+  - Looks up by demande_id
+  - Returns current statut, reference, centre_source, eta_minutes
+  - NOT_FOUND if unknown
+
+DelivrerCertificat:
+  - Looks up prelevement by don_id
+  - FAILED_PRECONDITION if no numero_don_national yet
+  - Idempotency (R25): if certificate already stored, return it
+  - Otherwise calls SOAP delivrerCertificatDon (stubbed until S4-12)
+  - UNAVAILABLE on SOAP failure (Donneurs retries)
+
+----------------------------------------------------------------
+12. S4-10 – SuivreNiveauxStock (server streaming)
+----------------------------------------------------------------
+Files:
+  grpc/StockStreamRegistry.java
+  grpc/StockChangeEventListener.java
+  grpc/StockNiveauMapper.java
+  event/StockChangeEvent.java
+
+How it works:
+  1. Client calls SuivreNiveauxStock with optional filters (lieu_id, groupe_sanguin)
+  2. Subscriber registered in StockStreamRegistry (ConcurrentHashMap, thread-safe)
+  3. Current snapshot sent immediately (all matching stock_niveau rows)
+  4. Cancel handler: when client disconnects, subscriber is auto-removed
+  5. After every DB commit that changes stock, StockChangeEvent is published
+  6. StockChangeEventListener fires @TransactionalEventListener(AFTER_COMMIT)
+     so only committed data is pushed to clients
+  7. Each changed row is mapped via StockNiveauMapper to NiveauStockMessage
+  8. Niveau computed from seuil_alerte:
+       BAS   = disponible <= seuil_alerte
+       MOYEN = disponible <= 2 * seuil_alerte
+       HAUT  = disponible >  2 * seuil_alerte
+
+----------------------------------------------------------------
+13. S4-11 – gRPC exception advice
+----------------------------------------------------------------
+File: grpc/GrpcExceptionAdvice.java
+
+Centralised @GrpcAdvice class maps:
+  IllegalArgumentException      → INVALID_ARGUMENT
+  EntityNotFoundException       → NOT_FOUND
+  IllegalStateException         → FAILED_PRECONDITION
+  ConnectException              → UNAVAILABLE
+  TimeoutException              → DEADLINE_EXCEEDED
+  Any other Exception           → INTERNAL (no stack trace exposed)
+
+----------------------------------------------------------------
+14. File structure created
+----------------------------------------------------------------
+src/main/java/tn/iit/blood/service_cnts/
+  ├── ServiceCntsApplication.java       (main class, @EnableScheduling)
+  ├── model/
+  │   ├── Lieu.java
+  │   ├── StockNiveau.java
+  │   ├── StockNiveauId.java            (composite PK)
+  │   ├── Reservation.java
+  │   └── Prelevement.java
+  ├── repository/
+  │   ├── LieuRepository.java
+  │   ├── StockNiveauRepository.java    (includes findByKeyForUpdate with PESSIMISTIC_WRITE)
+  │   ├── ReservationRepository.java
+  │   └── PrelevementRepository.java
+  ├── grpc/
+  │   ├── DonStockGrpcService.java      (all 5 RPCs)
+  │   ├── StockStreamRegistry.java      (subscriber registry)
+  │   ├── StockChangeEventListener.java (after-commit event → stream push)
+  │   ├── StockNiveauMapper.java        (entity → proto message)
+  │   └── GrpcExceptionAdvice.java      (S4-11 status mapping)
+  ├── scheduler/
+  │   ├── DeliverySimulatorJob.java     (S4-06)
+  │   ├── QualificationSimulatorJob.java(S4-08)
+  │   └── RetryConfirmerJob.java        (S4-05 retry skeleton)
+  └── event/
+      └── StockChangeEvent.java
+
+src/main/resources/
+  ├── application.properties
+  └── db/migration/
+      ├── V1__init.sql
+      └── V2__seed.sql
+
+contracts/  (at d:\eclipse-workspace\contracts\)
+  ├── proto/donstock/v1/donstock.proto
+  └── wsdl-xsd/                         (empty, waiting for Student 5's cnts.xsd)
+
+----------------------------------------------------------------
+15. WHAT IS STILL TODO (future steps)
+----------------------------------------------------------------
+S4-12  SOAP client:
+       Wait for Student 5 to merge cnts.xsd, then:
+       - Run mvn generate-sources to get JAXB classes
+       - Implement CntsWebServiceClient with WebServiceTemplate
+       - Wire it into DonStockGrpcService.declareToCnts()
+       - Add Resilience4j retry + circuit breaker around SOAP calls
+       - Implement the full central path in verifierEtReserver()
+
+S4-13  Tests:
+       - Unit tests for stock logic, niveau computation, status mapping
+       - In-process gRPC tests for all 5 RPCs
+       - Concurrency test for parallel reservations (idempotency)
+       - MockWebServiceServer tests for SOAP client (after S4-12)
+
+S4-14  Delivery:
+       - Enable gRPC reflection in demo profile
+       - Dockerfile (expose 9090 and 8083)
+       - grpcurl examples in README
+
+----------------------------------------------------------------
+16. BUILD STATUS
+----------------------------------------------------------------
+  mvnw.cmd compile → BUILD SUCCESS
+  47 source files compiled
+  Proto stubs generated from donstock.proto
+  JAXB skipped (cnts.xsd not yet present – expected)
+
+================================================================
