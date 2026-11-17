@@ -82,11 +82,20 @@ public class DemandeService {
     }
 
     private Demande appliquer(UUID id, ReservationResultat resultat) {
-        Demande demande = demandes.findById(id)
+        Demande demande = demandes.findByIdVerrouillee(id)
                 .orElseThrow(() -> new IllegalStateException("Demande disparue pendant le traitement : " + id));
 
         if (demande.getStatut() != StatutDemande.EN_ATTENTE) {
             // annulee entre-temps : on ne l'ecrase pas
+            if (demande.getStatut() == StatutDemande.ANNULEE
+                    && resultat.statut() == com.service_demandes.client.StatutReservation.RESERVEE_STOCK_LOCAL) {
+                try {
+                    donStock.libererReservation(id, resultat.reference());
+                } catch (RuntimeException e) {
+                    log.warn("Impossible de liberer la reservation {} de la demande annulee {}",
+                            resultat.reference(), id, e);
+                }
+            }
             log.info("Demande {} deja au statut {}, reponse de Don & Stock ignoree", id, demande.getStatut());
             return demande;
         }
@@ -136,7 +145,8 @@ public class DemandeService {
             throw new RequeteInvalideException("Seul le statut ANNULEE est accepté");
         }
 
-        Demande demande = lire(id);
+        Demande demande = demandes.findByIdVerrouillee(id)
+                .orElseThrow(() -> new RessourceIntrouvableException("Demande introuvable"));
 
         if (requete.statut() == StatutDemande.ANNULEE) {
             if (!demande.getStatut().estOuverte()) {

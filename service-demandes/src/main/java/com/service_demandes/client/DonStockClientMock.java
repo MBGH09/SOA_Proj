@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 /**
  * Faux Don & Stock pour developper sans attendre l'Etudiant 4. Actif avec le profil "mock".
  * Le comportement se choisit avec donstock.mock.mode (LOCAL, COMMANDE, PENURIE ou INDISPONIBLE).
@@ -30,5 +32,10 @@ public class DonStockClientMock implements DonStockClient {
             case PENURIE -> new ReservationResultat(StatutReservation.STOCK_INSUFFISANT_PARTOUT, null, null, null);
             case INDISPONIBLE -> throw new DonStockIndisponibleException("Don & Stock simulé indisponible");
         };
+    }
+
+    @Override
+    public void libererReservation(UUID demandeId, String reference) {
+        // Le serveur gRPC simulé n'a pas d'etat persistant de reservation.
     }
 }

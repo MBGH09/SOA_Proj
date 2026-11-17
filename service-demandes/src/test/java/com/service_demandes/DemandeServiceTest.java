@@ -22,6 +22,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Verifie la regle des deux transactions : rien d'ouvert pendant l'appel a Don & Stock. */
@@ -75,5 +77,6 @@ class DemandeServiceTest {
 
         assertThat(resultat.getStatut()).isEqualTo(StatutDemande.ANNULEE);
         assertThat(demandes.findById(resultat.getId()).orElseThrow().getStatut()).isEqualTo(StatutDemande.ANNULEE);
+        verify(donStock).libererReservation(eq(resultat.getId()), eq("RES-10"));
     }
 }
