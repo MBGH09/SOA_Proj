@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5433/donneurs
-    username: donneurs
-    password: donneurs
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/donneurs}
+    username: ${SPRING_DATASOURCE_USERNAME:donneurs}
+    password: ${SPRING_DATASOURCE_PASSWORD:donneurs}
 
   application:
     name: service-donneurs
@@ -16,4 +16,10 @@ spring:
     enabled: true
 
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
