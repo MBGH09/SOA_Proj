@@ -1,1 +1,7 @@
-
+.idea/
+*.iml
+**/target/
+**/bin/
+**/out/
+.DS_Store
+Thumbs.db
