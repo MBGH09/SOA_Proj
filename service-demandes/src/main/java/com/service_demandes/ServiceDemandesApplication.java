@@ -1,4 +1,4 @@
-package com.service_demandes.service_demandes;
+package com.service_demandes;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
