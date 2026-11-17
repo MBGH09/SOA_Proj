@@ -13,4 +13,11 @@ public class ServiceDemandesApplication {
     public static void main(String[] args) {
         SpringApplication.run(ServiceDemandesApplication.class, args);
     }
+@SpringBootApplication
+public class ServiceDemandesApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ServiceDemandesApplication.class, args);
+	}
+
 }

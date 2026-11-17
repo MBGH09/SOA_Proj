@@ -1,0 +1,9 @@
+<tns:enregistrerPrelevementRequest
+    xmlns:tns="http://iit.tn/soa/cnts">
+    <tns:donIdLocal>DON-DEMO-001</tns:donIdLocal>
+    <tns:groupeSanguin>O_POS</tns:groupeSanguin>
+    <tns:volumeMl>450</tns:volumeMl>
+    <tns:centreId>CRTS-SFAX</tns:centreId>
+    <tns:datePrelevement>2026-11-04</tns:datePrelevement>
+</tns:enregistrerPrelevementRequest>
+
