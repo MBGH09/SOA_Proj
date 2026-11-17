@@ -21,16 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Creation d'une demande (S6-05). Cette classe n'est volontairement PAS @Transactional :
- * <ol>
- *   <li>transaction 1 : enregistrer la demande EN_ATTENTE et valider (commit) ;</li>
- *   <li>appel de Don & Stock, sans aucune transaction ouverte (aucune connexion de base retenue pendant l'appel) ;</li>
- *   <li>transaction 2 : enregistrer le nouveau statut et la reference.</li>
- * </ol>
- */
 @Service
 public class DemandeService {
 
@@ -39,6 +33,7 @@ public class DemandeService {
     private final DemandeRepository demandes;
     private final DonStockClient donStock;
     private final TransactionTemplate transaction;
+    private final Set<UUID> reservationsEnCours = ConcurrentHashMap.newKeySet();
 
     public DemandeService(DemandeRepository demandes, DonStockClient donStock, TransactionTemplate transaction) {
         this.demandes = demandes;
@@ -63,6 +58,7 @@ public class DemandeService {
 
         // Appel gRPC : pas de transaction ouverte ici
         ReservationResultat resultat;
+        reservationsEnCours.add(enAttente.getId());
         try {
             resultat = donStock.verifierEtReserver(new ReservationCommande(
                     enAttente.getId(),
@@ -75,6 +71,8 @@ public class DemandeService {
             // Repli : la demande reste EN_ATTENTE, la reconciliation (S6-10) la terminera
             log.warn("Don & Stock indisponible pour la demande {} : {}", enAttente.getId(), e.getMessage());
             return enAttente;
+        } finally {
+            reservationsEnCours.remove(enAttente.getId());
         }
 
         // 2e transaction : nouveau statut
@@ -127,7 +125,7 @@ public class DemandeService {
         if (hopitalId != null && !hopitalId.isBlank()) {
             filtre = filtre.and((racine, requete, cb) -> cb.equal(racine.get("hopitalId"), hopitalId));
         }
-        return demandes.findAll(filtre, Sort.by(Sort.Direction.DESC, "dateCreation"));
+        return demandes.findAll(filtre, Sort.sort(Demande.class).by(Demande::getDateCreation).descending());
     }
 
     @Transactional(readOnly = true)
@@ -149,6 +147,9 @@ public class DemandeService {
                 .orElseThrow(() -> new RessourceIntrouvableException("Demande introuvable"));
 
         if (requete.statut() == StatutDemande.ANNULEE) {
+            if (reservationsEnCours.contains(id)) {
+                throw new ConflitMetierException("La demande est en cours de reservation et ne peut pas encore être annulée");
+            }
             if (!demande.getStatut().estOuverte()) {
                 throw new ConflitMetierException(
                         "La demande est au statut " + demande.getStatut() + " et ne peut plus être annulée");

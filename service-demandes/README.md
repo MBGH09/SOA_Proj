@@ -19,7 +19,7 @@ Flyway crée les tables au démarrage. Santé : <http://localhost:8082/actuator/
 
 | Variable | Défaut | Rôle |
 |---|---|---|
-| `DEMANDES_DB_HOST` / `DEMANDES_DB_PORT` / `DEMANDES_DB_NAME` | `localhost` / `5432` / `demandes` | Base `demandes-db` |
+| `DEMANDES_DB_HOST` / `DEMANDES_DB_PORT` / `DEMANDES_DB_NAME` | `localhost` / `5432` / `demandes` | Base de données |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` | `postgres` / aucun | Accès à la base |
 | `SERVER_PORT` | `8082` | Port HTTP |
 | `donstock.mock.mode` (profil `mock`) | `LOCAL` | `LOCAL`, `COMMANDE`, `PENURIE` ou `INDISPONIBLE` |
