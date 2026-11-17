@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/donneurs}
+    username: ${SPRING_DATASOURCE_USERNAME:donneurs}
+    password: ${SPRING_DATASOURCE_PASSWORD:donneurs}
+
+  application:
+    name: service-donneurs
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+server:
+  port: ${SERVER_PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
