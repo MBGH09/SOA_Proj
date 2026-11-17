@@ -1,0 +1,8 @@
+**/target
+**/.git
+**/.idea
+**/.classpath
+**/.project
+**/node_modules
+.git
+.idea

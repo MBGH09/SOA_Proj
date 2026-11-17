@@ -1,1 +1,220 @@
+services:
+  donneurs-db:
+    image: postgres:16-alpine
+    container_name: donneurs-db
+    environment:
+      POSTGRES_DB: donneurs
+      POSTGRES_USER: donneurs
+      POSTGRES_PASSWORD: donneurs
+    ports:
+      - "5433:5432"
+    volumes:
+      - donneurs-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U donneurs -d donneurs"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
+  cnts-db:
+    image: postgres:16-alpine
+    container_name: cnts-db
+    environment:
+      POSTGRES_DB: cnts
+      POSTGRES_USER: cnts
+      POSTGRES_PASSWORD: cnts
+    ports:
+      - "5434:5432"
+    volumes:
+      - cnts-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cnts -d cnts"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  demandes-db:
+    image: postgres:16-alpine
+    container_name: demandes-db
+    environment:
+      POSTGRES_DB: demandes
+      POSTGRES_USER: demandes
+      POSTGRES_PASSWORD: demandes
+    ports:
+      - "5435:5432"
+    volumes:
+      - demandes-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demandes -d demandes"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  stock-db:
+    image: postgres:16-alpine
+    container_name: stock-db
+    environment:
+      POSTGRES_DB: stock
+      POSTGRES_USER: stock
+      POSTGRES_PASSWORD: stock
+    ports:
+      - "5436:5432"
+    volumes:
+      - stock-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stock -d stock"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  partenaire-db:
+    image: postgres:16-alpine
+    container_name: partenaire-db
+    environment:
+      POSTGRES_DB: partenaire
+      POSTGRES_USER: partenaire
+      POSTGRES_PASSWORD: partenaire
+    ports:
+      - "5437:5432"
+    volumes:
+      - partenaire-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U partenaire -d partenaire"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: gateway
+    depends_on:
+      - service-donneurs
+      - service-demandes
+      - service-don-stock
+      - service-cnts
+    environment:
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+
+  service-donneurs:
+    build:
+      context: .
+      dockerfile: service-donneurs/Dockerfile
+    container_name: service-donneurs
+    depends_on:
+      donneurs-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://donneurs-db:5432/donneurs
+      SPRING_DATASOURCE_USERNAME: donneurs
+      SPRING_DATASOURCE_PASSWORD: donneurs
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+
+  service-demandes:
+    build:
+      context: .
+      dockerfile: service-demandes/Dockerfile
+    container_name: service-demandes
+    depends_on:
+      demandes-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://demandes-db:5432/demandes
+      SPRING_DATASOURCE_USERNAME: demandes
+      SPRING_DATASOURCE_PASSWORD: demandes
+      SERVER_PORT: 8082
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+
+  service-don-stock:
+    build:
+      context: .
+      dockerfile: service-don-stock/Dockerfile
+    container_name: service-don-stock
+    depends_on:
+      stock-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://stock-db:5432/stock
+      SPRING_DATASOURCE_USERNAME: stock
+      SPRING_DATASOURCE_PASSWORD: stock
+      SERVER_PORT: 9090
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9090/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+
+  service-cnts:
+    build:
+      context: .
+      dockerfile: service-cnts/Dockerfile
+    container_name: service-cnts
+    depends_on:
+      cnts-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://cnts-db:5432/cnts
+      SPRING_DATASOURCE_USERNAME: cnts
+      SPRING_DATASOURCE_PASSWORD: cnts
+      SERVER_PORT: 8084
+      CNTS_LATENCY_MS: 0
+      CNTS_FAIL_RATE: 0.0
+      VOLUME_PRELEVEMENT_ML: 450
+    ports:
+      - "8084:8084"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8084/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+
+  service-partenaire:
+    build:
+      context: .
+      dockerfile: service-partenaire/Dockerfile
+    container_name: service-partenaire
+    depends_on:
+      partenaire-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://partenaire-db:5432/partenaire
+      SPRING_DATASOURCE_USERNAME: partenaire
+      SPRING_DATASOURCE_PASSWORD: partenaire
+      SERVER_PORT: 8085
+    ports:
+      - "8085:8085"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8085/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+
+volumes:
+  donneurs-db-data:
+  demandes-db-data:
+  stock-db-data:
+  partenaire-db-data:
+  cnts-db-data:
