@@ -40,10 +40,6 @@ public class WebServiceConfig {
     /**
      * Génère le WSDL automatiquement depuis cnts.xsd (S5-03, conforme au guide).
      * Nom du bean = "cnts" → URL : /ws/cnts.wsdl
-     *
-     * DefaultWsdl11Definition détecte les éléments du XSD dont le nom termine par
-     * "Request" / "Response" et crée les 3 opérations correspondantes :
-     *   enregistrerPrelevement, demanderApprovisionnement, delivrerCertificatDon
      */
     @Bean(name = "cnts")
     public DefaultWsdl11Definition defaultWsdl11Definition(XsdSchema cntsSchema) {

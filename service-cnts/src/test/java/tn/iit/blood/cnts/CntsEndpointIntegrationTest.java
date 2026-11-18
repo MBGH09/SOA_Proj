@@ -67,7 +67,7 @@ class CntsEndpointIntegrationTest {
     }
 
     // =========================================================================
-    // enregistrerPrelevement — R8 : volume ≠ 450 ml → Fault
+    // enregistrerPrelevement — R8 : volume ≠ 450 ml → PrelevementInvalideFault
     // =========================================================================
     @Test
     void enregistrerPrelevement_invalidVolume_returnsFault() {
@@ -80,7 +80,10 @@ class CntsEndpointIntegrationTest {
                     <tns:datePrelevement>2026-11-01</tns:datePrelevement>
                 </tns:enregistrerPrelevementRequest>
                 """.formatted(NS))))
-            .andExpect(ResponseMatchers.serverOrReceiverFault());
+            .andExpect(ResponseMatchers.serverOrReceiverFault())
+            // P1: assert typed XSD fault detail is serialized in <detail> (CntsSoapFaultResolver)
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='PrelevementInvalideFault']").exists());
     }
 
     // =========================================================================
@@ -108,7 +111,7 @@ class CntsEndpointIntegrationTest {
     }
 
     // =========================================================================
-    // enregistrerPrelevement — date future → Fault
+    // enregistrerPrelevement — date future → PrelevementInvalideFault
     // =========================================================================
     @Test
     void enregistrerPrelevement_futureDate_returnsFault() {
@@ -121,7 +124,10 @@ class CntsEndpointIntegrationTest {
                     <tns:datePrelevement>2099-01-01</tns:datePrelevement>
                 </tns:enregistrerPrelevementRequest>
                 """.formatted(NS))))
-            .andExpect(ResponseMatchers.serverOrReceiverFault());
+            .andExpect(ResponseMatchers.serverOrReceiverFault())
+            // P1: assert typed XSD fault detail is serialized in <detail> (CntsSoapFaultResolver)
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='PrelevementInvalideFault']").exists());
     }
 
     // =========================================================================
@@ -138,11 +144,14 @@ class CntsEndpointIntegrationTest {
                     <tns:dateDon>2026-11-01</tns:dateDon>
                 </tns:delivrerCertificatDonRequest>
                 """.formatted(NS))))
-            .andExpect(ResponseMatchers.serverOrReceiverFault());
+            .andExpect(ResponseMatchers.serverOrReceiverFault())
+            // P1: assert typed XSD fault detail is serialized in <detail> (CntsSoapFaultResolver)
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='CertificatRefuseFault']").exists());
     }
 
     // =========================================================================
-    // delivrerCertificatDon — R24 : REJETE prelevement → Fault
+    // delivrerCertificatDon — R24 : REJETE prelevement → CertificatRefuseFault
     // R24 visit completion (TERMINE) is enforced by service-don-stock (the caller).
     // CNTS only blocks if the prelevement was explicitly REJETE.
     // =========================================================================
@@ -158,6 +167,9 @@ class CntsEndpointIntegrationTest {
                     <tns:dateDon>2026-11-01</tns:dateDon>
                 </tns:delivrerCertificatDonRequest>
                 """.formatted(NS))))
-            .andExpect(ResponseMatchers.serverOrReceiverFault());
+            .andExpect(ResponseMatchers.serverOrReceiverFault())
+            // P1: assert typed XSD fault detail is serialized in <detail> (CntsSoapFaultResolver)
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='CertificatRefuseFault']").exists());
     }
 }
