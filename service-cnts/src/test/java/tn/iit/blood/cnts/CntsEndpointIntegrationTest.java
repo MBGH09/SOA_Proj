@@ -11,6 +11,8 @@ import org.springframework.xml.transform.StringSource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 /**
  * SOAP integration tests — S5-05
  * Uses MockWebServiceClient (no HTTP port needed).
@@ -29,6 +31,10 @@ class CntsEndpointIntegrationTest {
     private MockWebServiceClient mockClient() {
         return MockWebServiceClient.createClient(applicationContext);
     }
+
+    /** Current year prefix, e.g. "DN-2026-" — rollover-safe (P2). */
+    private static final String DN_PREFIX  = "DN-"   + LocalDate.now().getYear() + "-";
+    private static final String CERT_PREFIX = "CERT-" + LocalDate.now().getYear() + "-";
 
     // =========================================================================
     // enregistrerPrelevement — happy path
@@ -49,7 +55,7 @@ class CntsEndpointIntegrationTest {
             .andExpect(ResponseMatchers.noFault())
             // Verify the number follows DN-YYYY-NNNNNN format (not the exact value)
             .andExpect(ResponseMatchers.xpath(
-                "//*[local-name()='numeroDonNational'][starts-with(text(),'DN-2026-')]").exists())
+                "//*[local-name()='numeroDonNational'][starts-with(text(),'" + DN_PREFIX + "')]").exists())
             .andExpect(ResponseMatchers.xpath(
                 "//*[local-name()='statut'][text()='QUALIFICATION_EN_COURS']").exists())
             .andExpect(ResponseMatchers.xpath(
