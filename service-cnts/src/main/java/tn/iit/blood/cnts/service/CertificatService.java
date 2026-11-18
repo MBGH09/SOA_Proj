@@ -62,13 +62,13 @@ public class CertificatService {
         long seq = certificatRepo.nextSequenceValue();
         String numeroCertificat = String.format("CERT-%s-%06d", annee, seq);
 
-        LocalDate dateDon = req.getDateDon().toGregorianCalendar().toZonedDateTime().toLocalDate();
+        LocalDate dateDon = p.getDatePrelevement(); // use declared collection date, not caller's claim
 
         Certificat cert = new Certificat();
         cert.setNumeroCertificat(numeroCertificat);
         cert.setNumeroDonNational(req.getNumeroDonNational());
         cert.setDonIdLocal(req.getDonIdLocal());
-        cert.setCentreId(req.getCentreId());
+        cert.setCentreId(p.getCentreId());           // use declared centre, not caller's claim
         cert.setDateDon(dateDon);
         cert.setDateEmission(LocalDate.now());
         cert.setStatut("VALIDE");
