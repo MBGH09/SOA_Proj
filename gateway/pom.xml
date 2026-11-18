@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Parent Spring Boot : fournit la gestion des versions, le plugin de build
+         et la configuration par defaut de maven-compiler-plugin. -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.13</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>tn.iit.blood</groupId>
+    <artifactId>gateway</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>gateway</name>
+    <description>API Gateway (Spring Cloud Gateway) du projet SOA de gestion des dons de sang</description>
+    <packaging>jar</packaging>
+
+    <properties>
+        <!-- Niveau de langage Java 17 (bytecode Java 17). -->
+        <java.version>17</java.version>
+        <!-- BOM Spring Cloud compatible avec Spring Boot 3.3.x (release train Leyton). -->
+        <spring-cloud.version>2023.0.6</spring-cloud.version>
+        <!-- WireMock standalone : backend simule des tests d'integration S2-10.
+             Version stable 3.x (Java 11+), compatible Java 17. -->
+        <wiremock.version>3.13.2</wiremock.version>
+    </properties>
+
+    <dependencies>
+        <!-- Gateway reactif (base sur WebFlux / Netty). NE PAS ajouter
+             spring-boot-starter-web, sinon conflit Servlet/MVC. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+
+        <!-- Actuator : expose /actuator/health et /actuator/info. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Securite reactive et validation des JWT (S2-07).
+             Fournit Spring Security (WebFlux) et les classes Nimbus JOSE
+             necessaires pour signer (HS256) et verifier les jetons. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- Tests (JUnit 5, Spring Boot Test). Portee test uniquement. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- WireMock (S2-10) : backend HTTP simule des tests d'integration.
+             La variante "standalone" est un jar auto-suffisant (Jetty et
+             Jackson ombrages) : aucune dependance transitive servlet/Jackson
+             n'est ajoutee au classpath de production. Portee test uniquement. -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>${wiremock.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Import du BOM Spring Cloud : aligne les versions de tous les
+                 artefacts org.springframework.cloud sur celles de 2023.0.6. -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <!-- Permet de produire un jar executable (mvn package + java -jar). -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Configuration explicite de la compilation Java 17.
+                 Evite l'erreur "release version 5 not supported" et garantit
+                 que le code source est bien compile en Java 17. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>17</release>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
