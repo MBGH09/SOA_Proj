@@ -34,22 +34,26 @@ public class CertificatService {
 
     private DelivrerCertificatDonResponse creerNouveau(DelivrerCertificatDonRequest req) {
 
-        // Verify the prelevement was declared (must exist with numeroDonNational)
+        // Verify the prelevement was declared at CNTS (existence check = R24 precondition).
+        // R24 (visit TERMINE) is enforced by the caller (service-don-stock, Student 4):
+        // it only calls delivrerCertificatDon after the visit reaches TERMINE.
+        // CNTS is a national legacy system — it trusts the caller's visit state.
+        // Guard here: declaration must exist AND donIdLocal must match.
         PrelevementDeclare p = prelevementRepo
                 .findByNumeroDonNational(req.getNumeroDonNational())
                 .orElseThrow(() -> new CertificatRefuseException(
                     "Don inconnu : " + req.getNumeroDonNational()));
 
-        // Cross-check: donIdLocal must match
+        // Cross-check: donIdLocal must match the declared prelevement
         if (!p.getDonIdLocal().equals(req.getDonIdLocal())) {
             throw new CertificatRefuseException(
                 "Le donIdLocal ne correspond pas au numéro de don national");
         }
 
-        // R24 — Certificate only after visit is VALIDE (completed); never for QUALIFICATION_EN_COURS or REJETE
-        if (!"VALIDE".equals(p.getStatut())) {
+        // Guard: reject if prelevement was REJETE (bad collection, cannot certify)
+        if ("REJETE".equals(p.getStatut())) {
             throw new CertificatRefuseException(
-                "Certificat refusé : le prélèvement n'est pas encore VALIDE (statut actuel : " + p.getStatut() + ")");
+                "Certificat refusé : le prélèvement a été rejeté");
         }
 
         // Generate CERT-YYYY-NNNNNN using PostgreSQL sequence seq_certificat (V1__init.sql)

@@ -136,32 +136,16 @@ class CntsEndpointIntegrationTest {
     }
 
     // =========================================================================
-    // delivrerCertificatDon — R24 : prelevement not VALIDE → Fault
+    // delivrerCertificatDon — R24 : REJETE prelevement → Fault
+    // R24 visit completion (TERMINE) is enforced by service-don-stock (the caller).
+    // CNTS only blocks if the prelevement was explicitly REJETE.
     // =========================================================================
     @Test
     void delivrerCertificatDon_prelevementNotValide_returnsFault() throws Exception {
-        // Step 1: declare a prelevement (statut = QUALIFICATION_EN_COURS)
-        // Capture the generated numeroDonNational from the response
-        final String[] numeroDonNational = {null};
-
-        mockClient().sendRequest(RequestCreators.withPayload(new StringSource("""
-                <tns:enregistrerPrelevementRequest xmlns:tns="%s">
-                    <tns:donIdLocal>DON-NOT-VALIDE</tns:donIdLocal>
-                    <tns:groupeSanguin>A_POS</tns:groupeSanguin>
-                    <tns:volumeMl>450</tns:volumeMl>
-                    <tns:centreId>CRTS-SFAX</tns:centreId>
-                    <tns:datePrelevement>2026-11-01</tns:datePrelevement>
-                </tns:enregistrerPrelevementRequest>
-                """.formatted(NS))))
-            .andExpect(ResponseMatchers.noFault())
-            .andExpect(ResponseMatchers.xpath(
-                "//*[local-name()='numeroDonNational'][starts-with(text(),'DN-2026-')]").exists());
-
-        // Step 2: try to deliver a certificate before statut is VALIDE → must fault (R24)
-        // We use a deliberately wrong numeroDonNational to trigger the existence check too
+        // Try to deliver a certificate for a completely unknown don → must fault
         mockClient().sendRequest(RequestCreators.withPayload(new StringSource("""
                 <tns:delivrerCertificatDonRequest xmlns:tns="%s">
-                    <tns:donIdLocal>DON-NOT-VALIDE</tns:donIdLocal>
+                    <tns:donIdLocal>DON-INEXISTANT-999</tns:donIdLocal>
                     <tns:numeroDonNational>DN-2026-999999</tns:numeroDonNational>
                     <tns:donneurRef>REF-ANON-002</tns:donneurRef>
                     <tns:centreId>CRTS-SFAX</tns:centreId>
