@@ -186,8 +186,11 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
     post:
       tags: [Centres]
+      security:
+      - bearerAuth: []
       operationId: creerCreneaux
       summary: Create slots with a capacity (staff or admin)
+      description: Protected staff/admin operation. The JWT bearer token must contain a staff or admin role.
       requestBody:
         required: true
         content:
@@ -205,6 +208,8 @@ paths:
                 type: array
                 items: {$ref: '#/components/schemas/Creneau'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
   /api/v1/rendez-vous:
     post:
@@ -457,6 +462,16 @@ components:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
           example: {timestamp: '2026-11-08T10:15:30Z', status: 400, error: Bad Request, message: 'cin: must contain 8 digits', path: /api/v1/donneurs}
+    Unauthorized:
+      description: Missing or invalid JWT bearer token
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Forbidden:
+      description: The authenticated role is not staff or admin
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
     NotFound:
       description: Resource not found
       content:
