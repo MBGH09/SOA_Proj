@@ -8,7 +8,6 @@ info:
 servers:
 - {url: 'http://localhost:8081', description: service-donneurs (direct access)}
 - {url: 'http://localhost:8080', description: Gateway}
-security: []
 tags:
 - {name: Donneurs, description: 'Donors, eligibility and deferrals'}
 - {name: Centres, description: Centres and their slots}
@@ -62,6 +61,8 @@ paths:
     - {$ref: '#/components/parameters/Id'}
     get:
       tags: [Donneurs]
+      security:
+      - bearerAuth: []
       operationId: lireDonneur
       summary: Read a donor
       responses:
@@ -73,6 +74,8 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
     put:
       tags: [Donneurs]
+      security:
+      - bearerAuth: []
       operationId: modifierDonneur
       summary: Replace the data of a donor
       requestBody:
@@ -89,6 +92,8 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
     delete:
       tags: [Donneurs]
+      security:
+      - bearerAuth: []
       operationId: supprimerDonneur
       summary: Delete a donor
       responses:
@@ -97,6 +102,8 @@ paths:
   /api/v1/donneurs/{id}/eligibilite:
     get:
       tags: [Donneurs]
+      security:
+      - bearerAuth: []
       operationId: lireEligibilite
       summary: Eligibility result with the reasons (rules R1 to R4)
       parameters:
@@ -117,6 +124,8 @@ paths:
   /api/v1/donneurs/{id}/ajournements:
     post:
       tags: [Donneurs]
+      security:
+      - bearerAuth: []
       operationId: ajouterAjournement
       summary: Add a temporary deferral (doctor)
       parameters:
@@ -200,6 +209,8 @@ paths:
   /api/v1/rendez-vous:
     post:
       tags: [Rendez-vous]
+      security:
+      - bearerAuth: []
       operationId: creerRendezVous
       summary: Book a slot from home (EN_LIGNE) or at the centre (SUR_PLACE)
       description: Checks eligibility, the free place of the slot (R22) and one active appointment per day (R23).
@@ -222,6 +233,8 @@ paths:
         '409': {$ref: '#/components/responses/Conflict'}
     get:
       tags: [Rendez-vous]
+      security:
+      - bearerAuth: []
       operationId: listerRendezVous
       summary: List appointments
       parameters:
@@ -247,6 +260,8 @@ paths:
     - {$ref: '#/components/parameters/Id'}
     get:
       tags: [Rendez-vous]
+      security:
+      - bearerAuth: []
       operationId: lireRendezVous
       summary: Read an appointment
       responses:
@@ -258,6 +273,8 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
     patch:
       tags: [Rendez-vous]
+      security:
+      - bearerAuth: []
       operationId: modifierRendezVous
       summary: Cancel the appointment or move it to another slot
       requestBody:
@@ -276,6 +293,8 @@ paths:
   /api/v1/dons:
     post:
       tags: [Dons]
+      security:
+      - bearerAuth: []
       operationId: demarrerDon
       summary: Start a donation visit (step 1, reception)
       requestBody:
@@ -298,12 +317,12 @@ paths:
   /api/v1/dons/{id}:
     get:
       tags: [Dons]
+      security:
+      - bearerAuth: []
       operationId: lireDon
       summary: Read a donation visit (interview data hidden from donors, rule R20)
       parameters:
       - {$ref: '#/components/parameters/Id'}
-      - {$ref: '#/components/parameters/UserId'}
-      - {$ref: '#/components/parameters/UserRole'}
       responses:
         '200':
           description: The donation visit
@@ -314,6 +333,8 @@ paths:
   /api/v1/dons/{id}/entretien:
     post:
       tags: [Dons]
+      security:
+      - bearerAuth: []
       operationId: enregistrerEntretien
       summary: Step 2, medical interview (blood pressure, haemoglobin, decision)
       parameters:
@@ -333,6 +354,8 @@ paths:
   /api/v1/dons/{id}/prelevement:
     post:
       tags: [Dons]
+      security:
+      - bearerAuth: []
       operationId: enregistrerPrelevement
       summary: Step 3, collection of 450 ml (then gRPC call to Don & Stock)
       parameters:
@@ -352,6 +375,8 @@ paths:
   /api/v1/dons/{id}/repos:
     post:
       tags: [Dons]
+      security:
+      - bearerAuth: []
       operationId: enregistrerRepos
       summary: Step 4, rest (minimum 15 minutes, rule R9)
       parameters:
@@ -371,13 +396,13 @@ paths:
   /api/v1/dons/{id}/certificat:
     get:
       tags: [Certificats]
+      security:
+      - bearerAuth: []
       operationId: lireCertificat
       summary: Read the donation certificate (JSON, or PDF with Accept application/pdf)
       description: A donor can read only his own certificate. The certificate shows no health data (R27).
       parameters:
       - {$ref: '#/components/parameters/Id'}
-      - {$ref: '#/components/parameters/UserId'}
-      - {$ref: '#/components/parameters/UserRole'}
       responses:
         '200':
           description: The certificate, EN_PREPARATION (no number yet) or EMIS
@@ -406,6 +431,11 @@ paths:
               schema: {$ref: '#/components/schemas/CertificatVerification'}
         '404': {$ref: '#/components/responses/NotFound'}
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   parameters:
     Id:
       name: id
@@ -420,16 +450,6 @@ components:
       name: size
       in: query
       schema: {type: integer, minimum: 1, maximum: 100, default: 20}
-    UserId:
-      name: X-User-Id
-      in: header
-      description: Set by the Gateway from the JWT (donor id); a donor reads only his own certificate
-      schema: {type: string}
-    UserRole:
-      name: X-User-Role
-      in: header
-      description: Set by the Gateway from the JWT; interview data is hidden from donors (R20)
-      schema: {type: string}
   responses:
     BadRequest:
       description: Invalid request, with the list of wrong fields
