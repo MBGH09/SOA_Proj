@@ -2,8 +2,8 @@
 
 Reference files for EVERY pull request review. Read both before reviewing. If anything below differs from them, the files win.
 
-- `docs/review/SOA_Blood_Donation_Project_v2_from_CNTS_study.md`: the study v2.1 (contracts, flows, business rules R1-R27, resilience, config variables, grading checklist)
-- `docs/review/engineer-guides.md`: step-by-step guides per engineer (step IDs, Definition of Done, ownership)
+- `docs/review/SOA_Blood_Donation_Project_v2_from_CNTS_study (1).md`: the study v2.1 (contracts, flows, business rules R1-R27, resilience, config variables, grading checklist)
+- `docs/review/Engineer-guides-step-by-step-from-the-first-day-to-the-defense-v2-CNTS-study.md`: step-by-step guides per engineer (step IDs, Definition of Done, ownership)
 
 Start the review summary with: `Guides used: SOA study v2.1 + engineer guides`.
 Cite the rule in each finding (R18, Definition of Done, contract-first, ...). Ignore code style and formatting.
