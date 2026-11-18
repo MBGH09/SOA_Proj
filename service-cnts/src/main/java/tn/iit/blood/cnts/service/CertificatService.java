@@ -46,6 +46,12 @@ public class CertificatService {
                 "Le donIdLocal ne correspond pas au numéro de don national");
         }
 
+        // R24 — Certificate only after visit is VALIDE (completed); never for QUALIFICATION_EN_COURS or REJETE
+        if (!"VALIDE".equals(p.getStatut())) {
+            throw new CertificatRefuseException(
+                "Certificat refusé : le prélèvement n'est pas encore VALIDE (statut actuel : " + p.getStatut() + ")");
+        }
+
         // Generate CERT-YYYY-NNNNNN using PostgreSQL sequence seq_certificat (V1__init.sql)
         String annee = String.valueOf(LocalDate.now().getYear());
         long seq = certificatRepo.nextSequenceValue();

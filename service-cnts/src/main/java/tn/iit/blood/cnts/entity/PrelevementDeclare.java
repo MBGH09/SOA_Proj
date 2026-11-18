@@ -35,7 +35,7 @@ public class PrelevementDeclare {
     @Column(name = "date_prelevement", nullable = false)
     private LocalDate datePrelevement;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)   // VARCHAR(30) — V4 migration widened from 20
     private String statut = "QUALIFICATION_EN_COURS";
 
     @Column(name = "created_at", nullable = false)

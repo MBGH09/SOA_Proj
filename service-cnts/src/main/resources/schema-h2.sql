@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS prelevement_declare (
     volume_ml           INTEGER      NOT NULL,
     centre_id           VARCHAR(20)  NOT NULL,
     date_prelevement    DATE         NOT NULL,
-    statut              VARCHAR(30)  NOT NULL DEFAULT 'QUALIFICATION_EN_COURS',
+    statut              VARCHAR(30)  NOT NULL DEFAULT 'QUALIFICATION_EN_COURS',  -- VARCHAR(30): QUALIFICATION_EN_COURS = 22 chars
     created_at          TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
