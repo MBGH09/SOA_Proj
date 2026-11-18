@@ -1,6 +1,7 @@
 package tn.iit.blood.cnts.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.iit.blood.cnts.entity.Certificat;
@@ -73,8 +74,15 @@ public class CertificatService {
         cert.setStatut("VALIDE");
 
         // R27 — donneurRef is accepted but NOT stored (no health or personal data)
-        certificatRepo.save(cert);
-        return toResponse(cert);
+        try {
+            certificatRepo.save(cert);
+            return toResponse(cert);
+        } catch (DataIntegrityViolationException e) {
+            // R25 — Concurrent duplicate insert: reload the existing certificate (same donIdLocal)
+            return certificatRepo.findByDonIdLocal(req.getDonIdLocal())
+                    .map(this::toResponse)
+                    .orElseThrow(() -> new CertificatRefuseException("Erreur inattendue lors de l'émission du certificat"));
+        }
     }
 
     private DelivrerCertificatDonResponse toResponse(Certificat cert) {
