@@ -1,0 +1,35 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  jwt-secret: ${JWT_SECRET:}
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:2000}
+            response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:10s}
+          routes:
+            - id: donneurs-routes
+              uri: ${DONNEURS_URL:http://service-donneurs:8081}
+              predicates:
+                - Path=/api/v1/donneurs/**, /api/v1/centres/**, /api/v1/rendez-vous/**, /api/v1/dons/**, /api/v1/certificats/**
+
+            - id: demandes-routes
+              uri: ${DEMANDES_URL:http://service-demandes:8082}
+              predicates:
+                - Path=/api/v1/demandes/**, /api/v1/appels/**, /api/v1/stock/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true

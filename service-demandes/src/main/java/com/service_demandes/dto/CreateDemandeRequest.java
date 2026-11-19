@@ -4,7 +4,6 @@ import com.service_demandes.entity.Composant;
 import com.service_demandes.entity.GroupeSanguin;
 import com.service_demandes.entity.MotifDemande;
 import com.service_demandes.entity.Urgence;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -48,9 +47,7 @@ public record CreateDemandeRequest(
         @NotNull(message = "Le niveau d'urgence est obligatoire")
         Urgence urgence,
 
-        // R17 : 2 à 3 donneurs de la famille, facultatif
-        @Min(value = 2, message = "La compensation demandée est de 2 donneurs au minimum")
-        @Max(value = 3, message = "La compensation demandée est de 3 donneurs au maximum")
+        // R17 : facultatif. Bornes lues depuis COMPENSATION_MIN et COMPENSATION_MAX.
         Integer compensationDemandee
 ) {
 }

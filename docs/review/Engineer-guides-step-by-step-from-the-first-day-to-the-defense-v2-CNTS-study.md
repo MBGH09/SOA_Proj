@@ -2,6 +2,8 @@
 
 Oct 24, 2026 · @mongi
 
+The running repository uses Java 21, Spring Boot 4.1.2, GitHub pull requests into `develop`, and GitHub Actions. Steps below that still say Java 17, Spring Boot 3.3, GitLab or merge request describe the original brief; follow the README and `.github/workflows/ci.yml` for the current toolchain.
+
 Each of the 7 engineers gets an ordered list of steps from the first commit to the defense. Every step says why it exists, what to do and how to check that it is finished. The steps follow the study `SOA_Blood_Donation_Project_v2_from_CNTS_study.md` (v2.1: booking from home and the donation certificate). Step IDs are the task IDs of the study (S3-04 and so on); a few steps are split into sub-steps (a, b, c).
 
 ## How to work with this guide
