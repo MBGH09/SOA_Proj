@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package donstock.v1;
+
+option java_multiple_files = true;
+option java_package = "tn.iit.blood.donstock.grpc";
+option java_outer_classname = "DonStockProto";
+
+service DonStockService {
+  rpc VerifierEtReserver (ReservationRequest) returns (ReservationResponse);
+  rpc ConsulterReservation (ConsultationRequest) returns (ReservationResponse);
+  rpc EnregistrerPrelevement (PrelevementRequest) returns (PrelevementResponse);
+  rpc DelivrerCertificat (CertificatRequest) returns (CertificatResponse);
+  rpc SuivreNiveauxStock (SuiviRequest) returns (stream NiveauStock);
+}
+
+message ReservationRequest {
+  string demande_id = 1;
+  string lieu_id = 2;
+  string groupe_sanguin = 3;
+  string composant = 4;
+  int32 quantite = 5;
+  string urgence = 6;
+}
+
+message ReservationResponse {
+  string statut = 1;
+  string reference = 2;
+  string centre_source = 3;
+  int32 eta_minutes = 4;
+}
+
+message ConsultationRequest {
+  string demande_id = 1;
+}
+
+message PrelevementRequest {
+  string don_id = 1;
+  string donneur_id = 2;
+  string centre_id = 3;
+  string groupe_sanguin = 4;
+  int32 volume_ml = 5;
+  string date_prelevement = 6;
+}
+
+message PrelevementResponse {
+  string numero_don_national = 1;
+  string statut = 2;
+}
+
+message CertificatRequest {
+  string don_id = 1;
+  string numero_don_national = 2;
+  string donneur_ref = 3;
+  string centre_id = 4;
+  string date_don = 5;
+}
+
+message CertificatResponse {
+  string numero_certificat = 1;
+  string date_emission = 2;
+  string statut = 3;
+}
+
+message SuiviRequest {
+  string lieu_id = 1;
+  string groupe_sanguin = 2;
+}
+
+message NiveauStock {
+  string lieu_id = 1;
+  string groupe_sanguin = 2;
+  string composant = 3;
+  int32 quantite = 4;
+  int32 seuil_alerte = 5;
+  string niveau = 6;
+  string timestamp = 7;
+}

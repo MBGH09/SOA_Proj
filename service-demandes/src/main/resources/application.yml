@@ -10,6 +10,8 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
+  flyway:
+    enabled: false
 
 management:
   endpoints:

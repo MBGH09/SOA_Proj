@@ -1,4 +1,4 @@
-FROM maven:3.9.9-eclipse-temurin-17 AS build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 COPY service-partenaire/pom.xml ./service-partenaire/pom.xml
@@ -7,7 +7,7 @@ COPY service-partenaire/src ./service-partenaire/src
 WORKDIR /workspace/service-partenaire
 RUN mvn -B -DskipTests clean package
 
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*

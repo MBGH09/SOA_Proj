@@ -1,7 +1,10 @@
 server:
-  port: ${SERVER_PORT:9090}
+  port: ${SERVER_PORT:8083}
 
 spring:
+  grpc:
+    server:
+      port: ${GRPC_PORT:9090}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5436/stock}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
@@ -10,6 +13,8 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
+  flyway:
+    enabled: false
 
 management:
   endpoints:

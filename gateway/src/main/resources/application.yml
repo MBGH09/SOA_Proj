@@ -4,20 +4,22 @@ server:
 spring:
   cloud:
     gateway:
-      routes:
-        - id: donneurs-routes
-          uri: ${DONNEURS_URL:http://service-donneurs:8081}
-          predicates:
-            - Path=/api/v1/donneurs/**, /api/v1/centres/**, /api/v1/rendez-vous/**, /api/v1/dons/**, /api/v1/certificats/**
-          filters:
-            - StripPrefix=2
+      server:
+        webflux:
+          routes:
+            - id: donneurs-routes
+              uri: ${DONNEURS_URL:http://service-donneurs:8081}
+              predicates:
+                - Path=/api/v1/donneurs/**, /api/v1/centres/**, /api/v1/rendez-vous/**, /api/v1/dons/**, /api/v1/certificats/**
+              filters:
+                - StripPrefix=2
 
-        - id: demandes-routes
-          uri: ${DEMANDES_URL:http://service-demandes:8082}
-          predicates:
-            - Path=/api/v1/demandes/**, /api/v1/appels/**, /api/v1/stock/**
-          filters:
-            - StripPrefix=2
+            - id: demandes-routes
+              uri: ${DEMANDES_URL:http://service-demandes:8082}
+              predicates:
+                - Path=/api/v1/demandes/**, /api/v1/appels/**, /api/v1/stock/**
+              filters:
+                - StripPrefix=2
 
 management:
   endpoints:
