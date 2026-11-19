@@ -119,7 +119,6 @@ services:
       DELAI_LIVRAISON_SEC: ${DELAI_LIVRAISON_SEC:-30}
       CNTS_URL: ${CNTS_URL:-http://service-cnts:8084/ws}
     ports:
-      - "${SERVER_PORT_DON_STOCK:-8083}:${SERVER_PORT_DON_STOCK:-8083}"
       - "${GRPC_PORT:-9090}:${GRPC_PORT:-9090}"
     networks: [bloodnet]
     healthcheck:
@@ -156,8 +155,6 @@ services:
       RETRY_JOBS_INTERVAL_SEC: ${RETRY_JOBS_INTERVAL_SEC:-60}
       GRPC_DEADLINE_MS: ${GRPC_DEADLINE_MS:-2000}
       DON_STOCK_GRPC_TARGET: ${DON_STOCK_GRPC_TARGET:-static://service-don-stock:9090}
-    ports:
-      - "${SERVER_PORT_DONNEURS:-8081}:${SERVER_PORT_DONNEURS:-8081}"
     networks: [bloodnet]
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:$$SERVER_PORT/actuator/health | grep -q UP"]
@@ -189,8 +186,6 @@ services:
       RETRY_JOBS_INTERVAL_SEC: ${RETRY_JOBS_INTERVAL_SEC:-60}
       DON_STOCK_GRPC_TARGET: ${DON_STOCK_GRPC_TARGET:-static://service-don-stock:9090}
       DONNEURS_URL: ${DONNEURS_URL:-http://service-donneurs:8081}
-    ports:
-      - "${SERVER_PORT_DEMANDES:-8082}:${SERVER_PORT_DEMANDES:-8082}"
     networks: [bloodnet]
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:$$SERVER_PORT/actuator/health | grep -q UP"]

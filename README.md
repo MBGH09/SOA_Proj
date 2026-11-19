@@ -13,13 +13,13 @@ docker compose up -d --build --wait
 
 `.env` stays on your machine. The values in `.env.example` are local placeholders.
 
-| Service | URL |
+| Published on the host | URL |
 |---|---|
 | Gateway | http://localhost:8080 |
-| Donneurs | http://localhost:8081 |
-| Demandes | http://localhost:8082 |
-| Don & Stock HTTP / gRPC | http://localhost:8083 / localhost:9090 |
+| Don & Stock gRPC | localhost:9090 |
 | CNTS | http://localhost:8084 |
+
+Donneurs (8081), Demandes (8082) and the Don & Stock Actuator (8083) stay on `bloodnet`. Call them through the Gateway.
 
 Databases are on the `bloodnet` network and are not published on the host. For a local Maven run against Postgres, add the host ports:
 
