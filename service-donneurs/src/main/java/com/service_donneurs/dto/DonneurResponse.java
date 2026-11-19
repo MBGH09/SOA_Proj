@@ -2,6 +2,8 @@ package com.service_donneurs.dto;
 
 import java.time.LocalDate;
 
+import com.service_donneurs.model.Donneur;
+
 public record DonneurResponse(
         Long id,
         String cin,
@@ -14,4 +16,17 @@ public record DonneurResponse(
         String telephone,
         Boolean premierDon
 ) {
+    public static DonneurResponse from(Donneur donneur) {
+        return new DonneurResponse(
+                donneur.getId(),
+                donneur.getCin(),
+                donneur.getNom(),
+                donneur.getPrenom(),
+                donneur.getDateNaissance(),
+                donneur.getPoidsKg(),
+                donneur.getGroupeSanguin(),
+                donneur.getVille(),
+                donneur.getTelephone(),
+                donneur.getPremierDon());
+    }
 }

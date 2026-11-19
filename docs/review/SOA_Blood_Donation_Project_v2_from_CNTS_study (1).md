@@ -1,7 +1,9 @@
 # SOA Mini-Project v2: Blood Donation Network based on the Tunisian CNTS guide
 
 **Source study:** `Guide du don de sang et gestion des stocks en Tunisie.md` (CNTS, CRTS and hospital blood banks)
-**Assignment:** `Mini-projet_SOA2026.pdf` (Dr. Ghada Feki), Java 17, Spring Boot 3.3.x, REST + gRPC + SOAP, Docker, GitLab
+**Repository standard:** Java 21, Spring Boot 4.1.2, GitHub pull requests and GitHub Actions (`.github/workflows/ci.yml`). The original assignment PDF asked for Java 17, Spring Boot 3.3.x and GitLab; this repository follows the newer stack.
+
+**Assignment:** `Mini-projet_SOA2026.pdf` (Dr. Ghada Feki), REST + gRPC + SOAP, Docker
 **Team:** 7 final-year students, IIT Sfax
 
 This file regenerates the whole solution so that the domain follows the study: who can donate, how a donation is done, how blood is stored at the national, regional and hospital level, and how hospitals get blood. The team structure, the three protocols, the tools and the contract-first method stay the same as in v1.
@@ -574,7 +576,7 @@ Task IDs look like `S3-09`. Create one GitLab issue per task. Each service start
 - S7-03 First `docker-compose.yml`: dedicated network, four PostgreSQL databases (`donneurs-db`, `demandes-db`, `stock-db`, `cnts-db`) with volumes and healthchecks, no published database ports.
 - S7-04 `.env.example` with all variables (section 16), names and ports table for the team on Day 1.
 - S7-05 Dockerfile template (multi-stage, slim Java 17 JRE, non-root, `wget` healthcheck) and review of each Dockerfile.
-- S7-06 `.gitlab-ci.yml`: stages `build`, `test`, `package`, `smoke-test`; per-service jobs with `rules:changes`; Docker-in-Docker for Testcontainers.
+- S7-06 `.github/workflows/ci.yml`: stages `build`, `test`, `package`, `smoke`; per-service jobs with path filters; full run on `main` and `develop`.
 - S7-07 Add every service to Compose with `depends_on: condition: service_healthy`, environment variables and restart policy.
 - S7-08 Smoke-test job: `docker compose up -d --build --wait`, Gateway health, one donor registration and one request through the Gateway, then `down -v`.
 - S7-09 Demo data profile that loads the seed data of section 15 into all databases, including free slots for the next days.
@@ -597,11 +599,11 @@ Run the kickoff meeting; check the exit criteria of each phase; keep the board u
 
 ## 13. Collaboration plan
 
-**Repository (GitLab monorepo):** `gateway/`, `service-donneurs/`, `service-demandes/`, `service-don-stock/`, `service-cnts/`, `frontend/`, `contracts/openapi`, `contracts/proto`, `contracts/wsdl-xsd`, `tests-manuels/`, `docker-compose.yml`, `.env.example`, `.gitlab-ci.yml`, `README.md`.
+**Repository (GitHub monorepo):** `gateway/`, `service-donneurs/`, `service-demandes/`, `service-don-stock/`, `service-cnts/`, `frontend/`, `contracts/openapi`, `contracts/proto`, `contracts/wsdl-xsd`, `tests-manuels/`, `docker-compose.yml`, `.env.example`, `.github/workflows/ci.yml`, `README.md`.
 
-**Git workflow:** protected `main`, branch `develop`, feature branches `service/<name>/<task-id>-<short-name>`, one task = one issue = one branch = one Merge Request reviewed by a teammate, Conventional Commits, everyone commits almost every working day.
+**Git workflow:** protected `main`, branch `develop`, feature branches `service/<name>/<task-id>-<short-name>`, one task = one issue = one branch = one pull request reviewed by a teammate, Conventional Commits, everyone commits almost every working day.
 
-**Rules:** contracts change only through a Merge Request approved by every consumer; contract first in Git; configuration only from environment variables; every network call has a timeout; no state in memory; daily 10-minute check-in; code freeze 2 days before the defense.
+**Rules:** contracts change only through a pull request approved by every consumer; contract first in Git; configuration only from environment variables; every network call has a timeout; no state in memory; daily 10-minute check-in; code freeze 2 days before the defense.
 
 **Kickoff meeting (1 hour):** freeze three contracts and the shared lists:
 1. The JSON of Donneur, Creneau, RendezVous, Don, Certificat, Demande, AppelDon and Compensation, with the reference lists of section 3.1.

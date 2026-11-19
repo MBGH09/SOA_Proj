@@ -16,6 +16,13 @@ spring:
   flyway:
     enabled: false
 
+stock:
+  soap-timeout-ms: ${SOAP_TIMEOUT_MS:3000}
+  retry-jobs-interval-sec: ${RETRY_JOBS_INTERVAL_SEC:60}
+  delai-qualification-sec: ${DELAI_QUALIFICATION_SEC:20}
+  delai-livraison-sec: ${DELAI_LIVRAISON_SEC:30}
+  cnts-url: ${CNTS_URL:http://service-cnts:8084/ws}
+
 management:
   endpoints:
     web:

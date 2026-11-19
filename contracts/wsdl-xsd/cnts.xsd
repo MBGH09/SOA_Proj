@@ -4,91 +4,115 @@
            xmlns:tns="http://iit.tn/soa/cnts"
            elementFormDefault="qualified">
 
-    <xs:element name="enregistrerPrelevementRequest" type="tns:EnregistrerPrelevementRequest"/>
-    <xs:element name="enregistrerPrelevementResponse" type="tns:EnregistrerPrelevementResponse"/>
-    <xs:element name="PrelevementInvalideFault" type="tns:PrelevementInvalideFault"/>
+    <xs:simpleType name="GroupeSanguin">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="A_POS"/>
+            <xs:enumeration value="A_NEG"/>
+            <xs:enumeration value="B_POS"/>
+            <xs:enumeration value="B_NEG"/>
+            <xs:enumeration value="AB_POS"/>
+            <xs:enumeration value="AB_NEG"/>
+            <xs:enumeration value="O_POS"/>
+            <xs:enumeration value="O_NEG"/>
+        </xs:restriction>
+    </xs:simpleType>
 
-    <xs:element name="demanderApprovisionnementRequest" type="tns:DemanderApprovisionnementRequest"/>
-    <xs:element name="demanderApprovisionnementResponse" type="tns:DemanderApprovisionnementResponse"/>
-    <xs:element name="StockCentralInsuffisantFault" type="tns:StockCentralInsuffisantFault"/>
+    <xs:simpleType name="Composant">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="CGR"/>
+            <xs:enumeration value="PLASMA"/>
+            <xs:enumeration value="PLAQUETTES"/>
+        </xs:restriction>
+    </xs:simpleType>
 
-    <xs:element name="delivrerCertificatDonRequest" type="tns:DelivrerCertificatDonRequest"/>
-    <xs:element name="delivrerCertificatDonResponse" type="tns:DelivrerCertificatDonResponse"/>
-    <xs:element name="CertificatRefuseFault" type="tns:CertificatRefuseFault"/>
+    <xs:element name="enregistrerPrelevementRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="donIdLocal" type="xs:string"/>
+                <xs:element name="groupeSanguin" type="tns:GroupeSanguin"/>
+                <xs:element name="volumeMl" type="xs:int"/>
+                <xs:element name="centreId" type="xs:string"/>
+                <xs:element name="datePrelevement" type="xs:date"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="enregistrerPrelevementResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="numeroDonNational" type="xs:string"/>
+                <xs:element name="statut" type="xs:string"/>
+                <xs:element name="composantsPrevus" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="PrelevementInvalideFault">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="code" type="xs:string"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
 
-    <xs:complexType name="EnregistrerPrelevementRequest">
-        <xs:sequence>
-            <xs:element name="donIdLocal" type="xs:string"/>
-            <xs:element name="groupeSanguin" type="xs:string"/>
-            <xs:element name="volumeMl" type="xs:int"/>
-            <xs:element name="centreId" type="xs:string"/>
-            <xs:element name="datePrelevement" type="xs:date"/>
-        </xs:sequence>
-    </xs:complexType>
+    <xs:element name="demanderApprovisionnementRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="hopitalId" type="xs:string"/>
+                <xs:element name="region" type="xs:string"/>
+                <xs:element name="groupeSanguin" type="tns:GroupeSanguin"/>
+                <xs:element name="composant" type="tns:Composant"/>
+                <xs:element name="quantite" type="xs:int"/>
+                <xs:element name="urgence" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="demanderApprovisionnementResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="reference" type="xs:string"/>
+                <xs:element name="quantiteAccordee" type="xs:int"/>
+                <xs:element name="centreSource" type="xs:string"/>
+                <xs:element name="delaiMinutes" type="xs:int"/>
+                <xs:element name="statut" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="StockCentralInsuffisantFault">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="code" type="xs:string"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
 
-    <xs:complexType name="EnregistrerPrelevementResponse">
-        <xs:sequence>
-            <xs:element name="numeroDonNational" type="xs:string"/>
-            <xs:element name="statut" type="xs:string"/>
-            <xs:element name="composantsPrevus" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
-        </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="PrelevementInvalideFault">
-        <xs:sequence>
-            <xs:element name="message" type="xs:string"/>
-        </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="DemanderApprovisionnementRequest">
-        <xs:sequence>
-            <xs:element name="hopitalId" type="xs:string"/>
-            <xs:element name="region" type="xs:string"/>
-            <xs:element name="groupeSanguin" type="xs:string"/>
-            <xs:element name="composant" type="xs:string"/>
-            <xs:element name="quantite" type="xs:int"/>
-            <xs:element name="urgence" type="xs:string"/>
-        </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="DemanderApprovisionnementResponse">
-        <xs:sequence>
-            <xs:element name="reference" type="xs:string"/>
-            <xs:element name="quantiteAccordee" type="xs:int"/>
-            <xs:element name="centreSource" type="xs:string"/>
-            <xs:element name="delaiMinutes" type="xs:int"/>
-            <xs:element name="statut" type="xs:string"/>
-        </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="StockCentralInsuffisantFault">
-        <xs:sequence>
-            <xs:element name="message" type="xs:string"/>
-        </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="DelivrerCertificatDonRequest">
-        <xs:sequence>
-            <xs:element name="donIdLocal" type="xs:string"/>
-            <xs:element name="numeroDonNational" type="xs:string"/>
-            <xs:element name="donneurRef" type="xs:string"/>
-            <xs:element name="centreId" type="xs:string"/>
-            <xs:element name="dateDon" type="xs:date"/>
-        </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="DelivrerCertificatDonResponse">
-        <xs:sequence>
-            <xs:element name="numeroCertificat" type="xs:string"/>
-            <xs:element name="dateEmission" type="xs:date"/>
-            <xs:element name="statut" type="xs:string"/>
-        </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="CertificatRefuseFault">
-        <xs:sequence>
-            <xs:element name="message" type="xs:string"/>
-        </xs:sequence>
-    </xs:complexType>
+    <xs:element name="delivrerCertificatDonRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="donIdLocal" type="xs:string"/>
+                <xs:element name="numeroDonNational" type="xs:string"/>
+                <xs:element name="donneurRef" type="xs:string"/>
+                <xs:element name="centreId" type="xs:string"/>
+                <xs:element name="dateDon" type="xs:date"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="delivrerCertificatDonResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="numeroCertificat" type="xs:string"/>
+                <xs:element name="dateEmission" type="xs:date"/>
+                <xs:element name="statut" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="CertificatRefuseFault">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="code" type="xs:string"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
 
 </xs:schema>

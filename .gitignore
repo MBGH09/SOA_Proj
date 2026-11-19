@@ -29,6 +29,7 @@ Thumbs.db
 .env
 .env.local
 *.env
+!.env.example
 
 # ============================================================
 # Maven wrapper (optional to commit, but not needed)
