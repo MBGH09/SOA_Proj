@@ -16,7 +16,7 @@ abstract final class AppColors {
   static const outline = Color(0xFFD9D3CB);
   static const outlineVariant = Color(0xFFE9E4DE);
 
-  static const primary = Color(0xFF26201D);
+  static const primary = Color(0xFF3B3430);
   static const onPrimary = Color(0xFFFFFFFF);
   static const primaryContainer = Color(0xFFE6E1DB);
   static const onPrimaryContainer = Color(0xFF2A2420);

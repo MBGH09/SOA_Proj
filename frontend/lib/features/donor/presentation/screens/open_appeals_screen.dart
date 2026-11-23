@@ -5,10 +5,15 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/tokens/color_tokens.dart';
 import '../../../../app/theme/tokens/spacing_tokens.dart';
 import '../../../../app/theme/tokens/typography_tokens.dart';
+import '../../../../core/errors/api_error.dart';
 import '../../../../data/models/appeal.dart';
 import '../../../../shared/widgets/app_badge.dart';
 import '../../../../shared/widgets/app_buttons.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_empty_state.dart';
+import '../../../../shared/widgets/app_error_state.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
+import '../../../../shared/widgets/app_page_header.dart';
 import '../../../../shared/widgets/blood_group_tile.dart';
 import '../providers/appeal_providers.dart';
 
@@ -34,38 +39,22 @@ class OpenAppealsScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Open blood appeals',
-            style: wide
-                ? AppTypography.screenTitle
-                : AppTypography.screenTitleMobile,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            wide
+          AppPageHeader(
+            wide: wide,
+            title: 'Open blood appeals',
+            subtitle: wide
                 ? 'Centres are short of these blood groups — appeals updated every two minutes. Booking from the donor app fills them in order.'
                 : 'Centres are short of these blood groups. Updated 2 min ago.',
-            style: text.bodyMedium?.copyWith(
-              color: AppColors.onSurfaceVariant,
-            ),
           ),
           const SizedBox(height: AppSpacing.xl),
           appeals.when(
             data: (items) => _AppealList(items: items, wide: wide),
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
-              child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ),
-            error: (error, stackTrace) => _ErrorState(
+            loading: () => const AppLoadingState(label: 'Loading appeals…'),
+            error: (error, stackTrace) => AppErrorState(
+              title: 'We could not load the appeals',
+              message: error is ApiError
+                  ? apiMessageFor(error)
+                  : 'Check your connection and try again.',
               onRetry: () => ref.invalidate(openAppealsProvider),
             ),
           ),
@@ -91,11 +80,11 @@ class _AppealList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return AppCard(
-        child: Text(
-          'No open appeals right now.',
-          style: AppTypography.textTheme.bodyMedium,
-        ),
+      return const AppEmptyState(
+        title: 'No open appeals right now',
+        message: 'Centres have enough stock for the groups you can give. '
+            'Check back later.',
+        icon: Icons.notifications_none_rounded,
       );
     }
 
@@ -178,36 +167,6 @@ class _AppealCard extends StatelessWidget {
               height: buttonHeight,
               onPressed: () => context.go('/donor/book'),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = AppTypography.textTheme;
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('We could not load the appeals.', style: text.titleSmall),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Check your connection and try again.',
-            style: text.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: 160,
-            child: AppOutlinedButton(label: 'Try again', onPressed: onRetry),
-          ),
         ],
       ),
     );

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/router/role_provider.dart';
 import '../../app/theme/tokens/color_tokens.dart';
 import '../../app/theme/tokens/spacing_tokens.dart';
 import '../../app/theme/tokens/typography_tokens.dart';
 import '../../core/constants/app_role.dart';
+import '../../core/session/session_providers.dart';
 
 /// AppBar role control. Same 48 dp hit area on mobile and web.
 class RoleSwitcher extends ConsumerWidget {
@@ -14,7 +14,7 @@ class RoleSwitcher extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(roleProvider);
+    final role = ref.watch(activeRoleProvider);
     final text = AppTypography.textTheme;
 
     return PopupMenuButton<AppRole>(
@@ -27,7 +27,7 @@ class RoleSwitcher extends ConsumerWidget {
         side: const BorderSide(color: AppColors.outline),
       ),
       onSelected: (next) {
-        ref.read(roleProvider.notifier).select(next);
+        ref.read(activeRoleProvider.notifier).select(next);
         context.go(next.rootPath);
       },
       itemBuilder: (context) => [

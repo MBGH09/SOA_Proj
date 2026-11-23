@@ -52,10 +52,9 @@ and `_web.dart` copies.
 |---|---|
 | `AppBar · Mobile 392` / `AppBar · Web 1336` | `layouts/app_bar.dart` |
 | `RoleSwitcher` + `RoleSwitcher · Menu` | `layouts/role_switcher.dart` |
-| `NavigationRail · Web 76` (donor) | `layouts/donor_rail.dart` |
-| `NavigationRail · Staff · Web 76` | `layouts/staff_rail.dart` |
-| `NavigationRail · Hospital · Web 76` | `layouts/hospital_rail.dart` |
-| `NavigationBar · Mobile 392` | `layouts/mobile_nav_bar.dart` |
+| `NavigationRail · Web 76` (all roles) | `navigation/app_navigation_rail.dart` |
+| rail + bar destinations per role | `navigation/app_destination.dart` |
+| `NavigationBar · Mobile 392` | `navigation/mobile_nav_bar.dart` |
 | `AppShell` (rail/nav + AppBar + body) | `layouts/app_shell.dart` |
 | `CTA / FilledButton`, `OutlinedButton` | `widgets/app_buttons.dart` |
 | `Field / TextField` (+ Focused, Error) | `widgets/app_text_field.dart` |
@@ -63,7 +62,13 @@ and `_web.dart` copies.
 | `Badge / Neutral · Success · Warning · Critical` | `widgets/app_badge.dart` |
 | `ListTile` | `widgets/app_list_tile.dart` |
 | `DataTable` | `widgets/app_data_table.dart` |
-| `StatCard`, status/stock cells, `Divider` | `widgets/…` |
+| `StatCard` | `widgets/app_stat_card.dart` |
+| stock board cell | `widgets/stock_cell.dart` |
+| step dots | `widgets/app_step_indicator.dart` |
+| `Divider` | `widgets/app_divider.dart` |
+| page title block | `widgets/app_page_header.dart` |
+| empty / error / loading | `widgets/app_empty_state.dart`, `app_error_state.dart`, `app_loading_state.dart` |
+| confirm dialog / snack bar | `widgets/app_confirm_dialog.dart`, `widgets/app_snack_bar.dart` |
 
 ## Rules captured from the design
 

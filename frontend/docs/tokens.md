@@ -25,7 +25,7 @@ Map these to Material 3 `ColorScheme` fields directly (light scheme).
 | `color.onSurfaceVariant` | `#655F58` | `onSurfaceVariant` | secondary text, captions, helper |
 | `color.outline` | `#D9D3CB` | `outline` | hairline borders (cards, fields, buttons) |
 | `color.outlineVariant` | `#E9E4DE` | `outlineVariant` | dividers, row rules |
-| `color.primary` | `#26201D` | `primary` | primary buttons, completed step dots |
+| `color.primary` | `#3B3430` | `primary` | primary buttons, completed step dots |
 | `color.onPrimary` | `#FFFFFF` | `onPrimary` | text/icon on primary |
 | `color.primaryContainer` | `#E6E1DB` | `primaryContainer` | active nav indicator, fill bars |
 | `color.onPrimaryContainer` | `#2A2420` | `onPrimaryContainer` | text/icon on the nav indicator |
@@ -244,7 +244,7 @@ Contrast (WCAG 2.1, computed from the final tokens — all text pairings ≥ **4
 | `onSurfaceVariant` on `surface` | 5.95 |
 | `onSurfaceVariant` on `surfaceContainer` | 5.12 |
 | `onSurfaceVariant` on `surfaceContainerHighest` | 4.66 |
-| `onPrimary` on `primary` | 16.1 |
+| `onPrimary` on `primary` | 12.2 |
 | `onPrimaryContainer` on `primaryContainer` | 11.8 |
 | `onErrorContainer` on `errorContainer` | 7.25 |
 | `onWarningContainer` on `warningContainer` | 7.39 |

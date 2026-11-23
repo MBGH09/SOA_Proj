@@ -51,7 +51,9 @@ the web rail (≥ 900 dp) or the mobile `NavigationBar` (< 900 dp) and the AppBa
 | Admin | `/admin` | stock thresholds, stock (shared) |
 
 - `/` redirects to `/donor/appeals`.
-- The RoleSwitcher writes the active role to a provider and navigates to that branch's root.
+- The route's first segment decides which role's shell is drawn, so a deep link always
+  renders the right rail. `AppShell` mirrors that role into the session; the RoleSwitcher
+  writes the session and navigates to that branch's root.
 - Deep links mirror the FigCraft screen numbers (`/donor/appeals`, `/centre/board`, …).
 - Back behaviour: mobile pushes; web uses the same router with URL sync.
 
@@ -116,8 +118,8 @@ Accessibility is already baked into the tokens (`onSurfaceVariant` `#655F58`, `w
 | < 900 dp | AppBar + `NavigationBar` (80), body padding 16, gap 12, CTA/chips 48 | single column |
 | ≥ 900 dp | `NavigationRail` (76) + AppBar + content padding 28/56/32/56, gap 16, CTA 44 | 1–2 columns per design |
 
-Breakpoint lives in one place (`core/constants/breakpoints.dart`). Never branch on device
-type; branch on width.
+Breakpoint lives in one place (`AppBreakpoints.wide` in `app/theme/tokens/spacing_tokens.dart`).
+Never branch on device type; branch on width.
 
 ## 8. Naming
 

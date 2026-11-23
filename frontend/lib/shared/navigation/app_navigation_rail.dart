@@ -4,35 +4,27 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/tokens/color_tokens.dart';
 import '../../app/theme/tokens/spacing_tokens.dart';
 import '../../app/theme/tokens/typography_tokens.dart';
+import '../../core/constants/app_role.dart';
+import 'app_destination.dart';
 
-class _Destination {
-  const _Destination(this.label, this.path, this.icon);
+/// Web rail — 76 dp wide, right hairline, pill indicator.
+///
+/// One rail for every role; the destinations come from [destinationsFor].
+class AppNavigationRail extends StatelessWidget {
+  const AppNavigationRail({
+    super.key,
+    required this.role,
+    required this.location,
+  });
 
-  final String label;
-  final String path;
-  final IconData icon;
-}
-
-const _destinations = [
-  _Destination('Appeals', '/donor/appeals', Icons.notifications_none_rounded),
-  _Destination('Book', '/donor/book', Icons.calendar_today_outlined),
-  _Destination(
-    'Appointments',
-    '/donor/appointments',
-    Icons.format_list_bulleted_rounded,
-  ),
-  _Destination('Certificates', '/donor/certificates', Icons.description_outlined),
-  _Destination('Stock', '/donor/stock', Icons.bar_chart_rounded),
-];
-
-/// Donor rail — 76 dp wide, right hairline, pill indicator.
-class DonorRail extends StatelessWidget {
-  const DonorRail({super.key, required this.location});
-
+  final AppRole role;
   final String location;
 
   @override
   Widget build(BuildContext context) {
+    final destinations = destinationsFor(role);
+    final active = activeDestinationPath(destinations, location);
+
     return Container(
       width: 76,
       decoration: const BoxDecoration(
@@ -50,24 +42,21 @@ class DonorRail extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           Container(width: 40, height: 1, color: AppColors.outlineVariant),
           const SizedBox(height: AppSpacing.sm),
-          for (final destination in _destinations)
+          for (final destination in destinations)
             _RailDestination(
               destination: destination,
-              selected: _isSelected(destination.path),
+              selected: destination.path == active,
             ),
         ],
       ),
     );
   }
-
-  bool _isSelected(String path) =>
-      location == path || location.startsWith('$path/');
 }
 
 class _RailDestination extends StatelessWidget {
   const _RailDestination({required this.destination, required this.selected});
 
-  final _Destination destination;
+  final AppDestination destination;
   final bool selected;
 
   @override
@@ -84,7 +73,9 @@ class _RailDestination extends StatelessWidget {
               width: 56,
               height: 32,
               decoration: BoxDecoration(
-                color: selected ? AppColors.primaryContainer : Colors.transparent,
+                color: selected
+                    ? AppColors.primaryContainer
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
               child: Icon(
@@ -97,7 +88,7 @@ class _RailDestination extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              destination.label,
+              destination.railLabel,
               textAlign: TextAlign.center,
               style: AppTypography.textTheme.labelSmall?.copyWith(
                 fontSize: 10,

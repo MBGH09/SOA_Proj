@@ -2,41 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme/tokens/color_tokens.dart';
+import '../../core/constants/app_role.dart';
+import 'app_destination.dart';
 
-class _NavItem {
-  const _NavItem(this.label, this.path, this.icon);
-
-  final String label;
-  final String path;
-  final IconData icon;
-}
-
-const _items = [
-  _NavItem('Appeals', '/donor/appeals', Icons.notifications_none_rounded),
-  _NavItem('Book', '/donor/book', Icons.calendar_today_outlined),
-  _NavItem(
-    'Appointments',
-    '/donor/appointments',
-    Icons.format_list_bulleted_rounded,
-  ),
-  _NavItem('Certificates', '/donor/certificates', Icons.description_outlined),
-];
-
-/// Mobile bottom navigation — 80 dp, four donor destinations.
+/// Mobile bottom navigation — 80 dp, up to five destinations for the role.
 class MobileNavBar extends StatelessWidget {
-  const MobileNavBar({super.key, required this.location});
+  const MobileNavBar({super.key, required this.role, required this.location});
 
+  final AppRole role;
   final String location;
-
-  int get _index {
-    final index = _items.indexWhere(
-      (item) => location == item.path || location.startsWith('${item.path}/'),
-    );
-    return index < 0 ? 0 : index;
-  }
 
   @override
   Widget build(BuildContext context) {
+    final items = destinationsFor(
+      role,
+    ).where((destination) => destination.inMobileBar).toList(growable: false);
+    final active = activeDestinationPath(items, location);
+    final index = items.indexWhere((item) => item.path == active);
+
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -48,11 +31,11 @@ class MobileNavBar extends StatelessWidget {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         indicatorColor: AppColors.primaryContainer,
-        selectedIndex: _index,
+        selectedIndex: index < 0 ? 0 : index,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        onDestinationSelected: (index) => context.go(_items[index].path),
+        onDestinationSelected: (index) => context.go(items[index].path),
         destinations: [
-          for (final item in _items)
+          for (final item in items)
             NavigationDestination(
               icon: Icon(item.icon, color: AppColors.onSurfaceVariant),
               selectedIcon: Icon(
