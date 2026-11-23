@@ -1,9 +1,9 @@
 # National Blood Network — Flutter frontend
 
-**Status: project prepared, no feature code yet.**
-The Flutter project, dependency set and folder structure are ready. Screens are **not**
-implemented — `lib/main.dart` is still the Flutter template and will be replaced when the
-build starts.
+**Status: foundation + first screen implemented.**
+The Flutter app, design tokens, shell and mock data layer are in place.
+**01 · Open blood appeals** (Donor, mobile + web) is built end-to-end; the remaining
+screens are routed to a placeholder while they are implemented one by one.
 
 Design source of truth: `../out/project.figcraft` (exported PNGs in `../out/`).
 Design tokens: [`docs/tokens.md`](docs/tokens.md).
