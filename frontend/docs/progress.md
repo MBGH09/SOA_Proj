@@ -26,9 +26,9 @@ Keep this list current — one line per FigCraft screen.
 - [x] 01 · Open blood appeals — mobile + web
 - [x] 02 · Register donor — mobile + web
 - [x] 03 · Eligibility — mobile + web (eligible / deferred / not eligible)
-- [ ] 04 · Book a slot
-- [ ] 05 · My appointments
-- [ ] 06 · Move appointment
+- [x] 04 · Book a slot — mobile + web (centre → time → confirm)
+- [x] 05 · My appointments — mobile + web (upcoming / past, cancel)
+- [x] 06 · Move appointment — mobile + web
 - [ ] 07 · My certificates
 - [ ] 08 · Verify a certificate
 
@@ -59,6 +59,15 @@ Keep this list current — one line per FigCraft screen.
 - 03 · Eligibility can be reviewed in each outcome with `?state=eligible` and
   `?state=not-eligible` (default is the donor's real result, the deferred frame). Part 5
   replaces this query switch with the shared `MockScenario` control.
+- 04 · Book and 06 · Move read the contract failures from `?state=` too
+  (`slot-full`, `day-taken`, `deferred` → 409). Same Part 5 replacement.
+- 04 · Book is one screen with the three steps the frame names (Centre · Time · Confirm); the
+  FigCraft frame captures step 2. It opens on the day/time shown in the frame (Thu 12 · 14:00)
+  and on the nearest centre, so the first view matches the design.
+- 06 · Move's design frame labels 18 Nov "THU"; 18 Nov 2026 is a Wednesday, so the app prints
+  "Wed 18" / "WED 18 NOV" from the real date.
+- 05 · My appointments on mobile keeps both lists in the default "Upcoming" view (matching the
+  frame) and the "Past" chip filters to history only. Web shows both columns at once.
 - Bundle Inter Regular / Italic / SemiBold / Bold in `assets/fonts` (system fallback until then).
 - The design's staff rail lists five items (Today · Slots · Visits · Deferrals · Board). There is
   no Visits list route in the screen map, so the rail ships Today · Board · Slots · Deferrals and

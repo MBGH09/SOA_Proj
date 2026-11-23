@@ -8,10 +8,19 @@ enum AppBadgeTone { neutral, success, warning, critical }
 
 /// Pill badge, 28 dp tall (tokens.md §5).
 class AppBadge extends StatelessWidget {
-  const AppBadge({super.key, required this.label, this.tone = AppBadgeTone.neutral});
+  const AppBadge({
+    super.key,
+    required this.label,
+    this.tone = AppBadgeTone.neutral,
+    this.background,
+  });
 
   final String label;
   final AppBadgeTone tone;
+
+  /// Overrides the tone background — used when a badge sits on a beige card
+  /// and needs to read lighter than it (move flow, "Currently booked").
+  final Color? background;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +47,7 @@ class AppBadge extends StatelessWidget {
       height: 28,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       decoration: BoxDecoration(
-        color: background,
+        color: this.background ?? background,
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Row(

@@ -42,17 +42,22 @@ class AppFilledButton extends StatelessWidget {
 }
 
 /// Secondary action on the same row as a filled button.
+///
+/// [critical] renders the label in the reserved red, for a destructive choice
+/// such as cancelling an appointment.
 class AppOutlinedButton extends StatelessWidget {
   const AppOutlinedButton({
     super.key,
     required this.label,
     required this.onPressed,
     this.height = 44,
+    this.critical = false,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final double height;
+  final bool critical;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +67,7 @@ class AppOutlinedButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.onSurface,
+          foregroundColor: critical ? AppColors.error : AppColors.onSurface,
           side: const BorderSide(color: AppColors.outline),
           textStyle: AppTypography.textTheme.labelLarge,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),

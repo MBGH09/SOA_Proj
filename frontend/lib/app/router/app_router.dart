@@ -1,6 +1,9 @@
 import 'package:go_router/go_router.dart';
 
+import '../../features/donor/presentation/screens/book_slot_screen.dart';
 import '../../features/donor/presentation/screens/eligibility_screen.dart';
+import '../../features/donor/presentation/screens/move_appointment_screen.dart';
+import '../../features/donor/presentation/screens/my_appointments_screen.dart';
 import '../../features/donor/presentation/screens/open_appeals_screen.dart';
 import '../../features/donor/presentation/screens/register_donor_screen.dart';
 import '../../shared/layouts/app_shell.dart';
@@ -33,9 +36,18 @@ final appRouter = GoRouter(
           path: '/donor/eligibility',
           builder: (context, state) => const EligibilityScreen(),
         ),
-        _placeholder('/donor/book', 'Book a slot'),
-        _placeholder('/donor/appointments/move', 'Move appointment'),
-        _placeholder('/donor/appointments', 'My appointments'),
+        GoRoute(
+          path: '/donor/book',
+          builder: (context, state) => const BookSlotScreen(),
+        ),
+        GoRoute(
+          path: '/donor/appointments/move',
+          builder: (context, state) => const MoveAppointmentScreen(),
+        ),
+        GoRoute(
+          path: '/donor/appointments',
+          builder: (context, state) => const MyAppointmentsScreen(),
+        ),
         _placeholder('/donor/certificates', 'My certificates'),
         _placeholder('/donor/verify', 'Verify a certificate'),
         _placeholder('/donor/stock', 'Stock levels'),

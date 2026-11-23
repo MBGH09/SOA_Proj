@@ -142,6 +142,14 @@ Stock-board cells reuse the same idea without a pill: `In stock` →
 `surfaceContainerLowest` / `onSurface`, `Near` → `warningContainer` /
 `onWarningContainer`, `Low` → `errorContainer` / `onErrorContainer`.
 
+Interactive chips (`FilterChip` selected, step chips, day and time slots) are
+solid `primary` with `onPrimary` labels; a full or unavailable chip is
+`surfaceContainerLowest` with faded `onSurfaceVariant` text and no tap.
+
+Beige panels (Rules, Currently booked, Before you confirm) are
+`surfaceContainerLow` with `onSurface` text; a neutral badge inside one uses
+`surfaceContainerLowest` so it still reads as a pill.
+
 ---
 
 ## 6. Layer-name conventions

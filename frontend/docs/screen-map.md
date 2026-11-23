@@ -59,6 +59,9 @@ and `_web.dart` copies.
 | `CTA / FilledButton`, `OutlinedButton` | `widgets/app_buttons.dart` |
 | `Field / TextField` (+ Focused, Error) | `widgets/app_text_field.dart` |
 | `Chip / FilterChip` | `widgets/app_chip.dart` |
+| step chips (`1 · Centre  2 · Time`) | `widgets/app_flow_steps.dart` |
+| circular icon tile (centre pin, past visit) | `widgets/app_icon_avatar.dart` |
+| closed-list field (blood group, place) | `widgets/app_select_field.dart` |
 | `Badge / Neutral · Success · Warning · Critical` | `widgets/app_badge.dart` |
 | `ListTile` | `widgets/app_list_tile.dart` |
 | `DataTable` | `widgets/app_data_table.dart` |
@@ -73,6 +76,10 @@ and `_web.dart` copies.
 ## Rules captured from the design
 
 - Red only for critical: refused/absent visit, invalid certificate, low stock, over-capacity.
+- Selected chips (`FilterChip` Selected, step chips, day/time slots) are solid `primary` with
+  `onPrimary` text; a full slot is faded and not tappable.
+- Beige panels (Rules, Currently booked, Before you confirm) are `surfaceContainerLow`; a badge
+  inside one reads lighter (`surfaceContainerLowest`).
 - Status → badge mapping: Open → Neutral, Success → green, Near/Attention → amber,
   Critical/Low → red.
 - References and quantities use tabular figures (`tnum`).
