@@ -19,11 +19,13 @@ class AppTextField extends StatelessWidget {
     this.autofillHints,
     this.obscureText = false,
     this.enabled = true,
+    this.readOnly = false,
     this.maxLines = 1,
     this.prefixIcon,
     this.suffixIcon,
     this.onChanged,
     this.onSubmitted,
+    this.onTap,
   });
 
   final String label;
@@ -36,11 +38,15 @@ class AppTextField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final bool obscureText;
   final bool enabled;
+
+  /// Tap-to-pick fields (a date) stay read-only but keep the field styling.
+  final bool readOnly;
   final int maxLines;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +74,8 @@ class AppTextField extends StatelessWidget {
         TextField(
           controller: controller,
           enabled: enabled,
+          readOnly: readOnly,
+          onTap: onTap,
           obscureText: obscureText,
           maxLines: maxLines,
           keyboardType: keyboardType,

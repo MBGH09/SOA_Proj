@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
 
+import '../../features/donor/presentation/screens/eligibility_screen.dart';
 import '../../features/donor/presentation/screens/open_appeals_screen.dart';
+import '../../features/donor/presentation/screens/register_donor_screen.dart';
 import '../../shared/layouts/app_shell.dart';
 import '../../shared/widgets/placeholder_screen.dart';
 
@@ -23,8 +25,14 @@ final appRouter = GoRouter(
           path: '/donor/appeals',
           builder: (context, state) => const OpenAppealsScreen(),
         ),
-        _placeholder('/donor/register', 'Create a donor account'),
-        _placeholder('/donor/eligibility', 'Check your eligibility'),
+        GoRoute(
+          path: '/donor/register',
+          builder: (context, state) => const RegisterDonorScreen(),
+        ),
+        GoRoute(
+          path: '/donor/eligibility',
+          builder: (context, state) => const EligibilityScreen(),
+        ),
         _placeholder('/donor/book', 'Book a slot'),
         _placeholder('/donor/appointments/move', 'Move appointment'),
         _placeholder('/donor/appointments', 'My appointments'),

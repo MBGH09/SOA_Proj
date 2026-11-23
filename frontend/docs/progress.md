@@ -24,8 +24,8 @@ Keep this list current — one line per FigCraft screen.
 ### Donor
 
 - [x] 01 · Open blood appeals — mobile + web
-- [ ] 02 · Register donor
-- [ ] 03 · Eligibility
+- [x] 02 · Register donor — mobile + web
+- [x] 03 · Eligibility — mobile + web (eligible / deferred / not eligible)
 - [ ] 04 · Book a slot
 - [ ] 05 · My appointments
 - [ ] 06 · Move appointment
@@ -53,6 +53,12 @@ Keep this list current — one line per FigCraft screen.
 
 ## Known follow-ups
 
+- 02 · Register adds a **National ID (CIN)** field that is not in the FigCraft frame. The
+  contract needs it: a duplicate CIN is the 409 case (rule R5). Mock CIN `12345678` always
+  returns 409, so the conflict state can be reviewed by hand.
+- 03 · Eligibility can be reviewed in each outcome with `?state=eligible` and
+  `?state=not-eligible` (default is the donor's real result, the deferred frame). Part 5
+  replaces this query switch with the shared `MockScenario` control.
 - Bundle Inter Regular / Italic / SemiBold / Bold in `assets/fonts` (system fallback until then).
 - The design's staff rail lists five items (Today · Slots · Visits · Deferrals · Board). There is
   no Visits list route in the screen map, so the rail ships Today · Board · Slots · Deferrals and
