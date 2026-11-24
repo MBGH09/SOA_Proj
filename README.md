@@ -2,6 +2,8 @@
 
 Java 21 and Spring Boot 4.1.2. Four services and a Gateway: REST (`service-donneurs`, `service-demandes`), gRPC (`service-don-stock`), SOAP (`service-cnts`). Pull requests target `develop`. GitHub Actions runs build, test, package and a Compose smoke test.
 
+Documentation du module Gateway : [gateway/README.md](gateway/README.md).
+
 `service-partenaire` is not part of this design and is not started by Compose.
 
 ## Run
