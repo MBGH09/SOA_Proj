@@ -1,0 +1,34 @@
+[
+  {
+    "id": "APL-2026-014",
+    "bloodGroup": "O−",
+    "bloodGroupLabel": "O RH NEGATIVE",
+    "component": "Red cells",
+    "place": "CRTS Sfax",
+    "openedLabel": "Opened 10 Nov",
+    "donorsNeeded": 24,
+    "donorsBooked": 9,
+    "level": "critical"
+  },
+  {
+    "id": "APL-2026-013",
+    "bloodGroup": "A+",
+    "bloodGroupLabel": "A RH POSITIVE",
+    "component": "Red cells",
+    "place": "CHU Habib Bourguiba Sfax",
+    "openedLabel": "Opened 08 Nov",
+    "donorsNeeded": 12,
+    "donorsBooked": 4,
+    "level": "open"
+  },
+  {
+    "id": "APL-2026-012",
+    "bloodGroup": "B+",
+    "bloodGroupLabel": "B RH POSITIVE",
+    "component": "Platelets",
+    "place": "Collecte mobile, campus",
+    "openedLabel": "One-day collection · 14 Nov",
+    "donorsNeeded": 8,
+    "level": "open"
+  }
+]
