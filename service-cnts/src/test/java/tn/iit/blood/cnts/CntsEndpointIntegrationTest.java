@@ -10,8 +10,14 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.xml.transform.StringSource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import tn.iit.blood.cnts.entity.StockCentral;
+import tn.iit.blood.cnts.repository.ApprovisionnementRepository;
+import tn.iit.blood.cnts.repository.StockCentralRepository;
 
 import java.time.LocalDate;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * SOAP integration tests — S5-05
@@ -27,6 +33,12 @@ class CntsEndpointIntegrationTest {
 
     @Autowired
     private ApplicationContext applicationContext;
+
+    @Autowired
+    private StockCentralRepository stockRepo;
+
+    @Autowired
+    private ApprovisionnementRepository approRepo;
 
     private MockWebServiceClient mockClient() {
         return MockWebServiceClient.createClient(applicationContext);
@@ -171,5 +183,131 @@ class CntsEndpointIntegrationTest {
             // P1: assert typed XSD fault detail is serialized in <detail> (CntsSoapFaultResolver)
             .andExpect(ResponseMatchers.xpath(
                 "//*[local-name()='CertificatRefuseFault']").exists());
+    }
+
+    // =========================================================================
+    // demanderApprovisionnement (S5-06)
+    // R14: regional CRTS first, then CNTS. All or nothing.
+    // R15: CRITIQUE uses the shorter delay.
+    // R18: the same demandeId returns the same reference and does not
+    //      decrement stock a second time.
+    // =========================================================================
+
+    @Test
+    void demanderApprovisionnement_crtsHasEnough_usesRegionalCentre() {
+        stock("CRTS-SFAX", "A_POS", "CGR", 10);
+        stock("CNTS-TUNIS", "A_POS", "CGR", 20);
+
+        mockClient().sendRequest(RequestCreators.withPayload(new StringSource(
+                approvisionnement("dem-crts-1", "A_POS", "CGR", 4, "NORMALE"))))
+            .andExpect(ResponseMatchers.noFault())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='centreSource'][text()='CRTS-SFAX']").exists())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='quantiteAccordee'][text()='4']").exists())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='delaiMinutes'][text()='60']").exists())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='reference'][starts-with(text(),'" + APP_PREFIX + "')]").exists());
+
+        assertEquals(6, quantite("CRTS-SFAX", "A_POS", "CGR"));
+        assertEquals(20, quantite("CNTS-TUNIS", "A_POS", "CGR"));
+    }
+
+    @Test
+    void demanderApprovisionnement_crtsShort_fallsBackToCnts() {
+        stock("CRTS-SFAX", "B_POS", "PLASMA", 1);
+        stock("CNTS-TUNIS", "B_POS", "PLASMA", 20);
+
+        mockClient().sendRequest(RequestCreators.withPayload(new StringSource(
+                approvisionnement("dem-cnts-1", "B_POS", "PLASMA", 5, "NORMALE"))))
+            .andExpect(ResponseMatchers.noFault())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='centreSource'][text()='CNTS-TUNIS']").exists());
+
+        assertEquals(1, quantite("CRTS-SFAX", "B_POS", "PLASMA"));
+        assertEquals(15, quantite("CNTS-TUNIS", "B_POS", "PLASMA"));
+    }
+
+    @Test
+    void demanderApprovisionnement_nobodyCanSupply_returnsFault() {
+        stock("CRTS-SFAX", "O_NEG", "CGR", 1);
+        stock("CNTS-TUNIS", "O_NEG", "CGR", 1);
+
+        mockClient().sendRequest(RequestCreators.withPayload(new StringSource(
+                approvisionnement("dem-none-1", "O_NEG", "CGR", 5, "NORMALE"))))
+            .andExpect(ResponseMatchers.serverOrReceiverFault())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='StockCentralInsuffisantFault']").exists());
+
+        assertEquals(1, quantite("CRTS-SFAX", "O_NEG", "CGR"));
+        assertEquals(1, quantite("CNTS-TUNIS", "O_NEG", "CGR"));
+        assertTrue(approRepo.findByDemandeId("dem-none-1").isEmpty());
+    }
+
+    @Test
+    void demanderApprovisionnement_critique_usesShorterDelay() {
+        stock("CRTS-SFAX", "AB_POS", "PLAQUETTES", 8);
+
+        mockClient().sendRequest(RequestCreators.withPayload(new StringSource(
+                approvisionnement("dem-crit-1", "AB_POS", "PLAQUETTES", 2, "CRITIQUE"))))
+            .andExpect(ResponseMatchers.noFault())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='delaiMinutes'][text()='15']").exists())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='centreSource'][text()='CRTS-SFAX']").exists());
+    }
+
+    @Test
+    void demanderApprovisionnement_sameDemandeId_returnsSameReferenceOnce() {
+        stock("CRTS-SFAX", "A_NEG", "CGR", 10);
+        String payload = approvisionnement("dem-idemp-1", "A_NEG", "CGR", 3, "HAUTE");
+
+        mockClient().sendRequest(RequestCreators.withPayload(new StringSource(payload)))
+            .andExpect(ResponseMatchers.noFault());
+
+        String reference = approRepo.findByDemandeId("dem-idemp-1").orElseThrow().getReference();
+
+        mockClient().sendRequest(RequestCreators.withPayload(new StringSource(payload)))
+            .andExpect(ResponseMatchers.noFault())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='reference'][text()='" + reference + "']").exists())
+            .andExpect(ResponseMatchers.xpath(
+                "//*[local-name()='centreSource'][text()='CRTS-SFAX']").exists());
+
+        assertEquals(1, approRepo.findAll().size());
+        assertEquals(7, quantite("CRTS-SFAX", "A_NEG", "CGR"));
+    }
+
+    private static final String APP_PREFIX = "APP-" + LocalDate.now().getYear() + "-";
+
+    private String approvisionnement(String demandeId, String groupe, String composant,
+                                     int quantite, String urgence) {
+        return """
+                <tns:demanderApprovisionnementRequest xmlns:tns="%s">
+                    <tns:hopitalId>CHU-SFAX-01</tns:hopitalId>
+                    <tns:region>SFAX</tns:region>
+                    <tns:groupeSanguin>%s</tns:groupeSanguin>
+                    <tns:composant>%s</tns:composant>
+                    <tns:quantite>%d</tns:quantite>
+                    <tns:urgence>%s</tns:urgence>
+                    <tns:demandeId>%s</tns:demandeId>
+                </tns:demanderApprovisionnementRequest>
+                """.formatted(NS, groupe, composant, quantite, urgence, demandeId);
+    }
+
+    private void stock(String centreId, String groupe, String composant, int quantite) {
+        StockCentral row = new StockCentral();
+        row.setCentreId(centreId);
+        row.setGroupeSanguin(groupe);
+        row.setComposant(composant);
+        row.setQuantite(quantite);
+        stockRepo.saveAndFlush(row);
+    }
+
+    private int quantite(String centreId, String groupe, String composant) {
+        return stockRepo.findByCentreIdAndGroupeSanguinAndComposant(centreId, groupe, composant)
+                .orElseThrow()
+                .getQuantite();
     }
 }
