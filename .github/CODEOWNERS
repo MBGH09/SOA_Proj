@@ -1,0 +1,12 @@
+# Replace these teams with the GitHub teams you create for the repository.
+# Until those teams exist, GitHub will ignore unknown owners.
+
+* @blood-donation/maintainers
+/gateway/ @blood-donation/gateway
+/service-donneurs/ @blood-donation/donneurs
+/service-demandes/ @blood-donation/demandes
+/service-don-stock/ @blood-donation/don-stock
+/service-cnts/ @blood-donation/cnts
+/contracts/ @blood-donation/maintainers
+/docker-compose.yml @blood-donation/devops
+/.github/ @blood-donation/devops

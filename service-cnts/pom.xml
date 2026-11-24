@@ -27,7 +27,7 @@
         <!-- SPRING WEB SERVICES (SOAP) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web-services</artifactId>
+            <artifactId>spring-boot-starter-webservices</artifactId>
         </dependency>
 
         <!-- WSDL generation from XSD -->
@@ -49,6 +49,10 @@
         </dependency>
 
         <!-- Database migrations -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>

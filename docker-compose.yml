@@ -1,1 +1,234 @@
+networks:
+  bloodnet:
+    name: bloodnet
 
+services:
+  donneurs-db:
+    image: postgres:16-alpine
+    container_name: donneurs-db
+    environment:
+      POSTGRES_DB: ${DONNEURS_DB_NAME:-donneurs}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - donneurs-db-data:/var/lib/postgresql/data
+    networks: [bloodnet]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  demandes-db:
+    image: postgres:16-alpine
+    container_name: demandes-db
+    environment:
+      POSTGRES_DB: ${DEMANDES_DB_NAME:-demandes}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - demandes-db-data:/var/lib/postgresql/data
+    networks: [bloodnet]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  stock-db:
+    image: postgres:16-alpine
+    container_name: stock-db
+    environment:
+      POSTGRES_DB: ${STOCK_DB_NAME:-stock}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - stock-db-data:/var/lib/postgresql/data
+    networks: [bloodnet]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cnts-db:
+    image: postgres:16-alpine
+    container_name: cnts-db
+    environment:
+      POSTGRES_DB: ${CNTS_DB_NAME:-cnts}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - cnts-db-data:/var/lib/postgresql/data
+    networks: [bloodnet]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  service-cnts:
+    build:
+      context: .
+      dockerfile: service-cnts/Dockerfile
+    container_name: service-cnts
+    restart: unless-stopped
+    depends_on:
+      cnts-db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-demo}
+      SERVER_PORT: ${SERVER_PORT_CNTS:-8084}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://cnts-db:5432/${CNTS_DB_NAME:-cnts}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      CNTS_LATENCY_MS: ${CNTS_LATENCY_MS:-0}
+      CNTS_FAIL_RATE: ${CNTS_FAIL_RATE:-0.0}
+      VOLUME_PRELEVEMENT_ML: ${VOLUME_PRELEVEMENT_ML:-450}
+    ports:
+      - "${SERVER_PORT_CNTS:-8084}:${SERVER_PORT_CNTS:-8084}"
+    networks: [bloodnet]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:$$SERVER_PORT/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+
+  service-don-stock:
+    build:
+      context: .
+      dockerfile: service-don-stock/Dockerfile
+    container_name: service-don-stock
+    restart: unless-stopped
+    depends_on:
+      stock-db:
+        condition: service_healthy
+      service-cnts:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-demo}
+      SERVER_PORT: ${SERVER_PORT_DON_STOCK:-8083}
+      GRPC_PORT: ${GRPC_PORT:-9090}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://stock-db:5432/${STOCK_DB_NAME:-stock}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SOAP_TIMEOUT_MS: ${SOAP_TIMEOUT_MS:-3000}
+      RETRY_JOBS_INTERVAL_SEC: ${RETRY_JOBS_INTERVAL_SEC:-60}
+      DELAI_QUALIFICATION_SEC: ${DELAI_QUALIFICATION_SEC:-20}
+      DELAI_LIVRAISON_SEC: ${DELAI_LIVRAISON_SEC:-30}
+      CNTS_URL: ${CNTS_URL:-http://service-cnts:8084/ws}
+    ports:
+      - "${GRPC_PORT:-9090}:${GRPC_PORT:-9090}"
+    networks: [bloodnet]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:$$SERVER_PORT/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+
+  service-donneurs:
+    build:
+      context: .
+      dockerfile: service-donneurs/Dockerfile
+    container_name: service-donneurs
+    restart: unless-stopped
+    depends_on:
+      donneurs-db:
+        condition: service_healthy
+      service-don-stock:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-demo}
+      SERVER_PORT: ${SERVER_PORT_DONNEURS:-8081}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://donneurs-db:5432/${DONNEURS_DB_NAME:-donneurs}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      AGE_MIN: ${AGE_MIN:-18}
+      AGE_MAX: ${AGE_MAX:-70}
+      AGE_PREMIER_DON_MAX: ${AGE_PREMIER_DON_MAX:-65}
+      POIDS_MIN_KG: ${POIDS_MIN_KG:-50}
+      VOLUME_PRELEVEMENT_ML: ${VOLUME_PRELEVEMENT_ML:-450}
+      REPOS_MIN_MINUTES: ${REPOS_MIN_MINUTES:-15}
+      CRENEAU_CAPACITE_DEFAUT: ${CRENEAU_CAPACITE_DEFAUT:-4}
+      RETRY_JOBS_INTERVAL_SEC: ${RETRY_JOBS_INTERVAL_SEC:-60}
+      GRPC_DEADLINE_MS: ${GRPC_DEADLINE_MS:-2000}
+      DON_STOCK_GRPC_TARGET: ${DON_STOCK_GRPC_TARGET:-static://service-don-stock:9090}
+    networks: [bloodnet]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:$$SERVER_PORT/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+
+  service-demandes:
+    build:
+      context: .
+      dockerfile: service-demandes/Dockerfile
+    container_name: service-demandes
+    restart: unless-stopped
+    depends_on:
+      demandes-db:
+        condition: service_healthy
+      service-don-stock:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-demo}
+      SERVER_PORT: ${SERVER_PORT_DEMANDES:-8082}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://demandes-db:5432/${DEMANDES_DB_NAME:-demandes}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      COMPENSATION_MIN: ${COMPENSATION_MIN:-2}
+      COMPENSATION_MAX: ${COMPENSATION_MAX:-3}
+      GRPC_DEADLINE_MS: ${GRPC_DEADLINE_MS:-2000}
+      RETRY_JOBS_INTERVAL_SEC: ${RETRY_JOBS_INTERVAL_SEC:-60}
+      DON_STOCK_GRPC_TARGET: ${DON_STOCK_GRPC_TARGET:-static://service-don-stock:9090}
+      DONNEURS_URL: ${DONNEURS_URL:-http://service-donneurs:8081}
+    networks: [bloodnet]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:$$SERVER_PORT/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: gateway
+    restart: unless-stopped
+    depends_on:
+      service-donneurs:
+        condition: service_healthy
+      service-demandes:
+        condition: service_healthy
+      service-don-stock:
+        condition: service_healthy
+      service-cnts:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: ${SERVER_PORT_GATEWAY:-8080}
+      DONNEURS_URL: ${DONNEURS_URL:-http://service-donneurs:8081}
+      DEMANDES_URL: ${DEMANDES_URL:-http://service-demandes:8082}
+      GATEWAY_CONNECT_TIMEOUT_MS: ${GATEWAY_CONNECT_TIMEOUT_MS:-2000}
+      GATEWAY_RESPONSE_TIMEOUT: ${GATEWAY_RESPONSE_TIMEOUT:-10s}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      JWT_SECRET: ${JWT_SECRET:-}
+    ports:
+      - "${SERVER_PORT_GATEWAY:-8080}:${SERVER_PORT_GATEWAY:-8080}"
+    networks: [bloodnet]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:$$SERVER_PORT/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 40s
+
+volumes:
+  donneurs-db-data:
+  demandes-db-data:
+  stock-db-data:
+  cnts-db-data:
