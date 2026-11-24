@@ -441,7 +441,7 @@ Done when: no endpoint can return an HTML page or a stack trace.
 **S3-11 Unit and integration tests.** Why: tests are graded, and the state machine is easy to break.
 
 1. Unit tests (JUnit 5, Mockito): eligibility, state machine (every wrong order), slot capacity, certificate rules (never for `REFUSE`, never before `TERMINE`).
-2. Integration tests with Testcontainers PostgreSQL (`postgres:16-alpine`) and the fake gRPC server: a full donation from reception to certificate, slot full gives 409, fake server unavailable gives `A_SYNCHRONISER`, certificate failure gives `A_EMETTRE` then `EMIS` after the retry job, repeated failures open the circuit breaker.
+2. Integration tests with Testcontainers PostgreSQL (`postgres:18-alpine`) and the fake gRPC server: a full donation from reception to certificate, slot full gives 409, fake server unavailable gives `A_SYNCHRONISER`, certificate failure gives `A_EMETTRE` then `EMIS` after the retry job, repeated failures open the circuit breaker.
 3. Test with the real Don & Stock service together with Student 4 and fix any field name difference through an issue.
 
 Done when: `mvn verify` is green in CI.
@@ -879,13 +879,13 @@ Add a `.gitignore` with `.env`, `target/`, `node_modules/`, `.idea/`, `*.log` an
 ```
 services:
   donneurs-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${DONNEURS_DB_NAME:-donneursdb}
     volumes:
-      - donneurs-data:/var/lib/postgresql/data
+      - donneurs-data:/var/lib/postgresql
     networks: [bloodnet]
     healthcheck:
       test: pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}
