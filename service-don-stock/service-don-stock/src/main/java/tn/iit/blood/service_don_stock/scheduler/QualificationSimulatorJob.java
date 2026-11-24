@@ -12,6 +12,7 @@ import tn.iit.blood.service_don_stock.model.Prelevement;
 import tn.iit.blood.service_don_stock.model.StockNiveau;
 import tn.iit.blood.service_don_stock.repository.PrelevementRepository;
 import tn.iit.blood.service_don_stock.repository.StockNiveauRepository;
+import tn.iit.blood.service_don_stock.service.CentreResolver;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -33,15 +34,18 @@ public class QualificationSimulatorJob {
     private final PrelevementRepository  prelevementRepo;
     private final StockNiveauRepository  stockRepo;
     private final ApplicationEventPublisher eventPublisher;
+    private final CentreResolver          centreResolver;
 
     private static final String[] COMPOSANTS = {"CGR", "PLASMA", "PLAQUETTES"};
 
     public QualificationSimulatorJob(PrelevementRepository prelevementRepo,
                                      StockNiveauRepository stockRepo,
-                                     ApplicationEventPublisher eventPublisher) {
+                                     ApplicationEventPublisher eventPublisher,
+                                     CentreResolver centreResolver) {
         this.prelevementRepo = prelevementRepo;
         this.stockRepo        = stockRepo;
         this.eventPublisher   = eventPublisher;
+        this.centreResolver   = centreResolver;
     }
 
     @Scheduled(fixedDelayString = "${app.delai-qualification-sec:20}000")
@@ -56,8 +60,10 @@ public class QualificationSimulatorJob {
 
         List<StockNiveau> changed = new ArrayList<>();
         for (Prelevement p : ready) {
+            // A mobile collection feeds the CRTS of its region, not its own (empty) stock rows.
+            String stockCentreId = centreResolver.resolveStockCentreId(p.getCentreId());
             for (String composant : COMPOSANTS) {
-                stockRepo.findByKeyForUpdate(p.getCentreId(), p.getGroupeSanguin(), composant)
+                stockRepo.findByKeyForUpdate(stockCentreId, p.getGroupeSanguin(), composant)
                     .ifPresent(stock -> {
                         if (stock.getEnQualification() > 0) {
                             stock.setEnQualification(stock.getEnQualification() - 1);

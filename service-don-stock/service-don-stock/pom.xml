@@ -137,6 +137,12 @@
 			<version>${grpc-spring-boot-starter.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<!-- S4-13 — MockWebServiceServer for the CNTS SOAP client tests -->
+		<dependency>
+			<groupId>org.springframework.ws</groupId>
+			<artifactId>spring-ws-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
@@ -168,6 +174,28 @@
 			</extension>
 		</extensions>
 		<plugins>
+			<!-- Register generated-sources dirs so Eclipse/M2E sees them as source folders -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>add-generated-sources</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.build.directory}/generated-sources/protobuf/java</source>
+								<source>${project.build.directory}/generated-sources/protobuf/grpc-java</source>
+								<source>${project.build.directory}/generated-sources/jaxb</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 			<!-- Generate Java stubs from .proto files -->
 			<plugin>
 				<groupId>org.xolstice.maven.plugins</groupId>
@@ -216,6 +244,46 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<!-- M2E lifecycle mapping: tell Eclipse how to handle the code-gen plugins -->
+			<plugin>
+				<groupId>org.eclipse.m2e</groupId>
+				<artifactId>lifecycle-mapping</artifactId>
+				<version>1.0.0</version>
+				<configuration>
+					<lifecycleMappingMetadata>
+						<pluginExecutions>
+							<!-- Protobuf plugin cannot run inside Eclipse (needs native protoc).
+							     Ignore it; the stubs are pre-generated in target/ and added
+							     as source folders by build-helper above. -->
+							<pluginExecution>
+								<pluginExecutionFilter>
+									<groupId>org.xolstice.maven.plugins</groupId>
+									<artifactId>protobuf-maven-plugin</artifactId>
+									<versionRange>[0,)</versionRange>
+									<goals>
+										<goal>compile</goal>
+										<goal>compile-custom</goal>
+									</goals>
+								</pluginExecutionFilter>
+								<action><ignore/></action>
+							</pluginExecution>
+							<!-- JAXB plugin: execute normally so Eclipse generates the SOAP stubs -->
+							<pluginExecution>
+								<pluginExecutionFilter>
+									<groupId>org.jvnet.jaxb</groupId>
+									<artifactId>jaxb-maven-plugin</artifactId>
+									<versionRange>[0,)</versionRange>
+									<goals>
+										<goal>generate</goal>
+									</goals>
+								</pluginExecutionFilter>
+								<action><execute><runOnIncremental>false</runOnIncremental></execute></action>
+							</pluginExecution>
+						</pluginExecutions>
+					</lifecycleMappingMetadata>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

@@ -48,7 +48,7 @@ enum StatutReservation {
   APPROVISIONNEMENT_COMMANDE        = 2;  // central order placed via CNTS SOAP
   STOCK_INSUFFISANT_PARTOUT         = 3;  // neither local nor central could supply
   LIVREE                            = 4;  // delivery simulator confirmed arrival
-  EN_ATTENTE_CONFIRMATION           = 5;  // SOAP not reachable, stored as A_CONFIRMER
+  EN_ATTENTE_CONFIRMATION           = 5;  // SOAP not reachable, stored for retry
 }
 
 // Safety level derived from seuil_alerte (configurable threshold).
@@ -68,7 +68,7 @@ service DonStockService {
   // Verifies local stock and either reserves locally or triggers a CNTS SOAP
   // order (central path).  Idempotency key: demande_id.
   // Errors: INVALID_ARGUMENT (bad params), NOT_FOUND (unknown lieu_id),
-  //         UNAVAILABLE (CNTS down, order stored as A_CONFIRMER).
+  //         UNAVAILABLE (CNTS down, order stored as EN_ATTENTE_CONFIRMATION).
   rpc VerifierEtReserver (VerifierEtReserverRequest)
       returns (VerifierEtReserverResponse);
 
@@ -231,13 +231,26 @@ message SuivreNiveauxStockRequest {
 }
 
 // One message per (lieu, groupe_sanguin, composant) row that changed.
+// The fields match the study contract: quantite, seuil_alerte, niveau, timestamp.
 message NiveauStockMessage {
   string        lieu_id       = 1;
   string        lieu_nom      = 2;
   GroupeSanguin groupe_sanguin = 3;
   Composant     composant     = 4;
+
+  // Counters from the first draft — kept so existing subscribers keep working.
   int32         disponible    = 5;
   int32         reserve       = 6;
   int32         en_transit    = 7;
   Niveau        niveau        = 8;
+
+  // Available pouches for this (lieu, groupe, composant) — the "quantite" of
+  // the study's NiveauStock table (currently the entity's disponible column).
+  int32         quantite      = 9;
+
+  // Alert threshold used to derive niveau.
+  int32         seuil_alerte  = 10;
+
+  // ISO-8601 instant at which this level was computed.
+  string        timestamp     = 11;
 }
