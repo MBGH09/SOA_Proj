@@ -6,9 +6,24 @@ CORS, ajoute un identifiant de requête, gère les timeouts, vérifie les jetons
 JWT, applique les règles de rôle et limite le débit par adresse IP.
 
 - Java 17, Spring Boot 3.3.13, Spring Cloud 2023.0.6, Spring Security 6.3.10.
-- Port par défaut : `8090` (`server.port` dans `src/main/resources/application.yml`).
+- Port par défaut : `8090`, surchargeable via `SERVER_PORT` (le
+  `docker-compose.yml` de Student 7 utilise `SERVER_PORT=8080`).
 - Les rapports détaillés par étape sont dans `RAPPORT_S2-02.md` à
-  `RAPPORT_S2-09.md`.
+  `RAPPORT_S2-11.md`.
+
+## Prérequis (S2-11)
+
+| Outil | Version vérifiée | Usage |
+| --- | --- | --- |
+| JDK | 17 (`C:\Program Files\Java\jdk-17`) | Compilation et exécution |
+| Maven | 3.9.x | `mvn clean verify`, `mvn spring-boot:run` |
+| Docker (optionnel) | client 29.8.2, Compose v5.5.1 | Construction de l'image et Compose |
+| `curl`, `jq` | — | Appels API des exemples ci-dessous |
+
+Tous les réglages sensibles et de déploiement sont lus depuis des variables
+d'environnement (`application.yml`). Le fichier `.env.example` à la racine est
+un modèle : il est vide dans la branche actuelle, utilisez le tableau ci-dessous
+pour renseigner votre environnement. **Aucun secret n'est committé.**
 
 ## Démarrage
 
@@ -18,17 +33,39 @@ $env:DEMO_DONOR_PASSWORD = "..."
 $env:DEMO_STAFF_PASSWORD = "..."
 $env:DEMO_HOPITAL_PASSWORD = "..."
 $env:DEMO_ADMIN_PASSWORD = "..."
+# Facultatif : $env:SERVER_PORT = "8080"
 mvn spring-boot:run
 ```
 
 Sans microservices démarrés, les routes répondent `503` ou `504` ; la santé
-`/actuator/health` reste disponible. Le fichier `.env.example` à la racine du
-dépôt liste toutes les variables.
+`/actuator/health` reste disponible (voir la démo de panne plus bas).
+
+### Conteneur Docker (S2-11)
+
+Le `Dockerfile` est dérivé du modèle de Student 7. Le contexte de build est la
+**racine du dépôt** (le Dockerfile référence `gateway/pom.xml` et `gateway/src`) :
+
+```powershell
+docker build -f gateway/Dockerfile -t soa-gateway:s2-11 .
+docker run --rm -p 8090:8090 --env-file .env soa-gateway:s2-11
+```
+
+Avec le `docker-compose.yml` de Student 7, le gateway est lancé avec
+`SERVER_PORT=8080` et expose le port `8080`. Le build Docker n'a pas pu être
+exécuté ici : le client est installé mais le démon Docker n'est pas démarré
+(voir `RAPPORT_S2-11.md`).
+
+Le modèle de Compose ne fournit que `SERVER_PORT` : avant un
+`docker compose up`, ajoutez `JWT_SECRET` (≥ 32 caractères, exigé au démarrage),
+les quatre `DEMO_*_PASSWORD`, ainsi que `DONNEURS_URL=http://service-donneurs:8081`
+et `DEMANDES_URL=http://service-demandes:8082`. Sans ces deux URL, les défauts
+`localhost:8081`/`8082` désigneraient le conteneur du Gateway lui-même.
 
 ## Configuration
 
 | Variable | Défaut | Rôle |
 | --- | --- | --- |
+| `SERVER_PORT` | `8090` | Port d'écoute du Gateway (`8080` dans le Compose Student 7) |
 | `DONNEURS_URL` | `http://localhost:8081` | Cible du service Donneurs |
 | `DEMANDES_URL` | `http://localhost:8082` | Cible du service Demandes |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Origines autorisées (séparées par des virgules) |
@@ -117,10 +154,64 @@ Autres limites assumées :
 ## Tests
 
 ```powershell
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-17"
 mvn -B -ntp clean verify
+mvn -B -ntp test -Dtest="GatewayWireMock*"
 ```
+
+Résultats exécutés sur cette branche :
+
+| Commande | Tests | Échecs / erreurs / ignorés | Sortie |
+| --- | --- | --- | --- |
+| `mvn -B -ntp clean verify` | **182** | 0 / 0 / 0 | `BUILD SUCCESS`, code `0` |
+| `mvn -B -ntp test -Dtest="GatewayWireMock*"` | **19** | 0 / 0 / 0 | `BUILD SUCCESS`, code `0` |
+
+Les 159 tests antérieurs (S2-02 à S2-09) sont conservés ; les 19 tests WireMock
+couvrent les 10 routes, CORS, 401/403/200, 503, 504, `X-Request-Id` et le flux
+SSE. Les tests du correctif `RequestIdFilter` vérifient aussi la propagation par
+le Reactor Context, la concurrence et la non-fuite du MDC.
 
 La limitation est désactivée dans `src/test/resources/application.properties`
 pour ne pas modifier les suites S2-02 à S2-08 ; les tests S2-09 l'activent
 explicitement avec une limite basse. Les tests unitaires du compteur utilisent
 une horloge contrôlée et n'attendent jamais 60 secondes.
+
+## Utilisation de l'API (S2-11)
+
+Un token est obtenu auprès du Gateway, puis envoyé en `Bearer` sur une route
+proxifiée. Exemple avec le port local par défaut :
+
+```powershell
+$GATEWAY = "http://localhost:8090"
+$TOKEN = (curl -s -X POST "$GATEWAY/api/v1/auth/login" `
+  -H "Content-Type: application/json" `
+  -d '{"username":"staff","password":"<mot-de-passe-staff>"}' | jq -r .token)
+curl -H "Authorization: Bearer $TOKEN" "$GATEWAY/api/v1/rendez-vous"
+```
+
+Les quatre comptes de démonstration (`donor`, `staff`, `hopital`, `admin`) sont
+configurés par `DEMO_*_USERNAME` / `DEMO_*_PASSWORD` ; aucun mot de passe n'a de
+valeur par défaut. Sous le quota S2-09, une requête sans token répond `401`, un
+rôle insuffisant répond `403`.
+
+Pour Student 7 : exposer le token dans une variable Postman **`{{token}}`**
+et l'utiliser comme `Authorization: Bearer {{token}}`. Les rôles et la matrice
+d'accès sont détaillés dans `RAPPORT_S2-08.md` et dans le rapport final
+`RAPPORT_S2-11.md`.
+
+## Démo de panne : 503 JSON propre (S2-11)
+
+Sans microservice démarré (ou après l'arrêt d'un service), le Gateway répond un
+JSON structuré plutôt qu'une page HTML :
+
+```powershell
+curl -i http://localhost:8090/api/v1/centres
+# HTTP/1.1 503 Service Unavailable
+# {"timestamp":"...","status":503,"error":"Service Unavailable",
+#  "message":"...","path":"/api/v1/centres","requestId":"..."}
+```
+
+Ce comportement est couvert automatiquement par
+`GatewayWireMockBackendDownIntegrationTest` (arrêt réel du backend WireMock,
+puis redémarrage sur le même port avec retour à `200`). La démo contre les vrais
+services reste à faire : `docker-compose.yml` est vide dans cette branche.

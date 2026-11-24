@@ -1,0 +1,12 @@
+# Derive du .dockerignore de Student 7 (branche origin/config).
+# gateway.zip est exclu : il represente ~33 Mo et ne sert pas au build.
+**/target
+**/.git
+**/.idea
+**/.classpath
+**/.project
+**/node_modules
+.git
+.idea
+gateway.zip
+*.zip

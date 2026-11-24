@@ -1,6 +1,8 @@
 server:
-  # Port d'ecoute du gateway (le 8080 standard est occupe par Oracle XE sur cette machine).
-  port: 8090
+  # Port d'ecoute du gateway. Le 8080 standard est occupe par Oracle XE sur
+  # cette machine, d'ou le defaut local 8090. Le docker-compose.yml de
+  # Student 7 fournit SERVER_PORT=8080 : la valeur est donc surchargeable.
+  port: "${SERVER_PORT:8090}"
 
 spring:
   application:
