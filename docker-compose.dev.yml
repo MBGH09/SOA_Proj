@@ -1,0 +1,15 @@
+# Optional host access to the databases. Not used by CI.
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  donneurs-db:
+    ports:
+      - "5433:5432"
+  demandes-db:
+    ports:
+      - "5435:5432"
+  stock-db:
+    ports:
+      - "5436:5432"
+  cnts-db:
+    ports:
+      - "5434:5432"

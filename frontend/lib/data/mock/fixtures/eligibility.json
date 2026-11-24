@@ -1,0 +1,28 @@
+{
+  "decision": "AJOURNE_TEMPORAIREMENT",
+  "headline": "Take a break for now",
+  "summary": "You donated whole blood 20 days ago. The 8-week interval ends on 22 November.",
+  "eligibleFrom": "2026-11-22",
+  "checks": [
+    {
+      "label": "8 weeks since last whole-blood donation",
+      "detail": "36 days left — eligible again 22 Nov",
+      "satisfied": false
+    },
+    {
+      "label": "Between 18 and 65 years old",
+      "detail": "You are 25 · satisfied",
+      "satisfied": true
+    },
+    {
+      "label": "Weight at least 50 kg",
+      "detail": "You recorded 62 kg · satisfied",
+      "satisfied": true
+    },
+    {
+      "label": "No fever or infection for 14 days",
+      "detail": "Declared on your questionnaire",
+      "satisfied": true
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "hopitalId": "HOP-SFX-01",
+  "hopitalNom": "CHU Habib Bourguiba Sfax",
+  "patientRef": "PAT20260042",
+  "motif": "CHIRURGIE",
+  "groupeSanguin": "O_NEG",
+  "composant": "CGR",
+  "quantitePoches": 3,
+  "urgence": "HAUTE",
+  "compensationDemandee": 2
+}

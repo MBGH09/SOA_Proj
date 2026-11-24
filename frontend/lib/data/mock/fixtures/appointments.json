@@ -1,0 +1,69 @@
+{
+  "upcoming": [
+    {
+      "id": "RDV-2026-0442",
+      "centreName": "CRTS Sfax",
+      "centreKind": "CENTRE_PERMANENT",
+      "startsAt": "2026-11-12T10:30",
+      "channel": "EN_LIGNE",
+      "component": "Whole blood",
+      "volumeMl": 450,
+      "status": "PLANIFIE"
+    },
+    {
+      "id": "RDV-2026-0451",
+      "centreName": "Collecte mobile · campus universitaire",
+      "centreKind": "COLLECTE_MOBILE",
+      "startsAt": "2026-11-14T09:00",
+      "channel": "EN_LIGNE",
+      "component": "Whole blood",
+      "volumeMl": null,
+      "status": "PLANIFIE"
+    }
+  ],
+  "past": [
+    {
+      "id": "RDV-2026-0310",
+      "centreName": "CRTS Sfax",
+      "centreKind": "CENTRE_PERMANENT",
+      "startsAt": "2026-08-12T10:00",
+      "channel": "EN_LIGNE",
+      "component": "Whole blood",
+      "volumeMl": 450,
+      "status": "TERMINE",
+      "collectedAt": "2026-08-12",
+      "certificateNumber": "CERT-2026-000314"
+    },
+    {
+      "id": "RDV-2026-0203",
+      "centreName": "CHU Habib Bourguiba",
+      "centreKind": "BANQUE_HOSPITALIERE",
+      "startsAt": "2026-06-03T09:30",
+      "channel": "SUR_PLACE",
+      "component": "Whole blood",
+      "volumeMl": 450,
+      "status": "TERMINE",
+      "collectedAt": "2026-06-03",
+      "certificateNumber": "CERT-2026-000201"
+    },
+    {
+      "id": "RDV-2026-0098",
+      "centreName": "CRTS Sfax",
+      "centreKind": "CENTRE_PERMANENT",
+      "startsAt": "2026-04-14T11:00",
+      "channel": "EN_LIGNE",
+      "component": "Whole blood",
+      "volumeMl": 450,
+      "status": "TERMINE",
+      "collectedAt": "2026-04-14",
+      "certificateNumber": "CERT-2026-000097"
+    }
+  ],
+  "summary": {
+    "totalDonations": 7,
+    "lastDonation": "2026-08-12",
+    "nextAt": "2026-11-12T10:30",
+    "activeDeferral": null,
+    "certificateReady": true
+  }
+}

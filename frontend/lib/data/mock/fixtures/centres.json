@@ -1,0 +1,29 @@
+[
+  {
+    "id": "C-SFAX",
+    "name": "CRTS Sfax",
+    "address": "9 Avenue Habib Bourguiba",
+    "city": "Sfax",
+    "kind": "CENTRE_PERMANENT",
+    "openUntil": "15:00",
+    "distanceKm": 0.8
+  },
+  {
+    "id": "C-CHU",
+    "name": "CHU Habib Bourguiba",
+    "address": "Avenue Majida Boulila",
+    "city": "Sfax",
+    "kind": "BANQUE_HOSPITALIERE",
+    "openUntil": "16:00",
+    "distanceKm": 2.4
+  },
+  {
+    "id": "C-MOB",
+    "name": "Collecte mobile · campus universitaire",
+    "address": "Route de l'Aéroport km 0.5",
+    "city": "Sfax",
+    "kind": "COLLECTE_MOBILE",
+    "openUntil": "18:00",
+    "distanceKm": 3.1
+  }
+]

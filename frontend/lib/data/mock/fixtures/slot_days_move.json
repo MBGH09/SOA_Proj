@@ -1,0 +1,62 @@
+[
+  {
+    "date": "2026-11-11",
+    "times": [
+      { "start": "09:30", "placesLeft": 3 },
+      { "start": "11:00", "placesLeft": 0 },
+      { "start": "14:30", "placesLeft": 2 },
+      { "start": "16:00", "placesLeft": 4 },
+      { "start": "17:30", "placesLeft": 0 }
+    ]
+  },
+  {
+    "date": "2026-11-18",
+    "times": [
+      { "start": "09:30", "placesLeft": 3 },
+      { "start": "11:00", "placesLeft": 0 },
+      { "start": "14:30", "placesLeft": 2 },
+      { "start": "16:00", "placesLeft": 4 },
+      { "start": "17:30", "placesLeft": 0 }
+    ]
+  },
+  {
+    "date": "2026-11-19",
+    "times": [
+      { "start": "09:30", "placesLeft": 1 },
+      { "start": "11:00", "placesLeft": 2 },
+      { "start": "14:30", "placesLeft": 0 },
+      { "start": "16:00", "placesLeft": 3 },
+      { "start": "17:30", "placesLeft": 0 }
+    ]
+  },
+  {
+    "date": "2026-11-20",
+    "times": [
+      { "start": "09:30", "placesLeft": 0 },
+      { "start": "11:00", "placesLeft": 1 },
+      { "start": "14:30", "placesLeft": 4 },
+      { "start": "16:00", "placesLeft": 0 },
+      { "start": "17:30", "placesLeft": 2 }
+    ]
+  },
+  {
+    "date": "2026-11-21",
+    "times": [
+      { "start": "09:30", "placesLeft": 2 },
+      { "start": "11:00", "placesLeft": 0 },
+      { "start": "14:30", "placesLeft": 5 },
+      { "start": "16:00", "placesLeft": 1 },
+      { "start": "17:30", "placesLeft": 0 }
+    ]
+  },
+  {
+    "date": "2026-11-22",
+    "times": [
+      { "start": "09:30", "placesLeft": 3 },
+      { "start": "11:00", "placesLeft": 0 },
+      { "start": "14:30", "placesLeft": 1 },
+      { "start": "16:00", "placesLeft": 2 },
+      { "start": "17:30", "placesLeft": 0 }
+    ]
+  }
+]
