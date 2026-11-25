@@ -1,0 +1,64 @@
+{
+  "centreName": "CRTS Sfax",
+  "date": "2026-11-12",
+  "stats": {
+    "booked": 12,
+    "online": 10,
+    "walkIn": 2,
+    "receptionDone": 11,
+    "inInterview": 3,
+    "unfit": 1,
+    "collectedUnits": 7,
+    "collectedMl": 3150,
+    "mlPerDonation": 450
+  },
+  "agenda": [
+    {
+      "time": "08:30",
+      "reference": "D-2026-1189 · walk-in",
+      "channel": "SUR_PLACE",
+      "status": "interview",
+      "visitId": "D-2026-1189"
+    },
+    {
+      "time": "09:00",
+      "reference": "RDV-2026-0442 · online",
+      "channel": "EN_LIGNE",
+      "status": "waiting",
+      "cin": "08123457"
+    },
+    {
+      "time": "09:30",
+      "reference": "RDV-2026-0445 · online",
+      "channel": "EN_LIGNE",
+      "status": "collected",
+      "visitId": "D-2026-1186"
+    },
+    {
+      "time": "10:00",
+      "reference": "D-2026-1184 · walk-in",
+      "channel": "SUR_PLACE",
+      "status": "rest",
+      "visitId": "D-2026-1184"
+    },
+    {
+      "time": "10:30",
+      "reference": "RDV-2026-0446 · online",
+      "channel": "EN_LIGNE",
+      "status": "absent",
+      "cin": "08123459"
+    }
+  ],
+  "queue": [
+    { "reference": "D-2026-1191", "bloodGroup": "O−", "waitingMinutes": 6 },
+    { "reference": "D-2026-1192", "bloodGroup": "A+", "waitingMinutes": 13 },
+    { "reference": "D-2026-1193", "bloodGroup": "B+", "waitingMinutes": 21 }
+  ],
+  "stock": [
+    { "bloodGroup": "O+", "units": 3 },
+    { "bloodGroup": "A+", "units": 2 },
+    { "bloodGroup": "O−", "units": 1 },
+    { "bloodGroup": "B+", "units": 1 }
+  ],
+  "lowStockGroups": ["O−"]
+}

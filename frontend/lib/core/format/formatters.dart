@@ -15,6 +15,7 @@ abstract final class AppFormatters {
   static final DateFormat _longDate = DateFormat('d MMMM y');
   static final DateFormat _weekdayDayMonth = DateFormat('EEE d MMM');
   static final DateFormat _weekdayFull = DateFormat('EEEE d MMMM');
+  static final DateFormat _weekdayFullYear = DateFormat('EEEE d MMMM y');
   static final DateFormat _weekdayFullTime = DateFormat('EEEE d MMMM · HH:mm');
   static final DateFormat _weekdayDayMonthTime = DateFormat('EEE d MMM · HH:mm');
 
@@ -45,6 +46,10 @@ abstract final class AppFormatters {
 
   /// `Thursday 12 November` — the headline of an appointment card.
   static String weekdayFull(DateTime date) => _weekdayFull.format(date);
+
+  /// `Thursday 12 November 2026` — the centre's day, with the year.
+  static String weekdayFullYear(DateTime date) =>
+      _weekdayFullYear.format(date);
 
   /// `Thursday 12 November · 10:30` — appointment headline with the time.
   static String weekdayFullTime(DateTime instant) =>

@@ -1,0 +1,312 @@
+{
+  "date": "2026-11-12",
+  "visits": {
+    "D-2026-1189": {
+      "id": "D-2026-1189",
+      "donorName": "Amira Ben Salah",
+      "bloodGroup": "O−",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "ENTRETIEN_MEDICAL",
+      "startedAt": "2026-11-12T09:12",
+      "questionnaire": [
+        { "label": "Feels well today, no fever in the last 7 days", "answer": true },
+        { "label": "Weighs at least 50 kg", "answer": true },
+        { "label": "No dental extraction in the last 7 days", "answer": true },
+        { "label": "No tattoo or piercing in the last 4 months", "answer": false }
+      ],
+      "systolic": 128,
+      "diastolic": 82,
+      "haemoglobin": 13.4,
+      "elapsedMinutes": 26,
+      "collectedAt": "2026-11-12T09:41",
+      "durationMinutes": 10,
+      "volumeMl": 450,
+      "nationalDonationNumber": "NDN-2026-118842",
+      "restStartedAt": "2026-11-12T09:52",
+      "restEndsAt": "2026-11-12T10:07",
+      "restMinutesLeft": 12,
+      "certificateStatus": "A_EMETTRE"
+    },
+    "D-2026-1188": {
+      "id": "D-2026-1188",
+      "donorName": "Yosra Trabelsi",
+      "bloodGroup": "O+",
+      "centreName": "CRTS Sfax",
+      "channel": "EN_LIGNE",
+      "rendezVousReference": "RDV-2026-0441",
+      "step": "ENTRETIEN_MEDICAL",
+      "startedAt": "2026-11-12T09:05",
+      "elapsedMinutes": 33
+    },
+    "D-2026-1187": {
+      "id": "D-2026-1187",
+      "donorName": "Karim Gharbi",
+      "bloodGroup": "A+",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "ENTRETIEN_MEDICAL",
+      "startedAt": "2026-11-12T08:58",
+      "elapsedMinutes": 40
+    },
+    "D-2026-1194": {
+      "id": "D-2026-1194",
+      "donorName": "Mehdi Zouari",
+      "bloodGroup": "AB+",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "ACCUEIL",
+      "startedAt": "2026-11-12T09:22",
+      "elapsedMinutes": 25
+    },
+    "D-2026-1193": {
+      "id": "D-2026-1193",
+      "donorName": "Nour Ben Amor",
+      "bloodGroup": "B+",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "ACCUEIL",
+      "startedAt": "2026-11-12T09:26",
+      "elapsedMinutes": 21
+    },
+    "RDV-0442": {
+      "id": "RDV-0442",
+      "donorName": "Sami Kacem",
+      "bloodGroup": "O+",
+      "centreName": "CRTS Sfax",
+      "channel": "EN_LIGNE",
+      "rendezVousReference": "RDV-2026-0442",
+      "step": "ACCUEIL",
+      "startedAt": "2026-11-12T09:30",
+      "elapsedMinutes": 17
+    },
+    "D-2026-1192": {
+      "id": "D-2026-1192",
+      "donorName": "Ines Chaabane",
+      "bloodGroup": "A+",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "ACCUEIL",
+      "startedAt": "2026-11-12T09:34",
+      "elapsedMinutes": 13
+    },
+    "D-2026-1191": {
+      "id": "D-2026-1191",
+      "donorName": "Hatem Ferchichi",
+      "bloodGroup": "O−",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "ACCUEIL",
+      "startedAt": "2026-11-12T09:41",
+      "elapsedMinutes": 6
+    },
+    "D-2026-1186": {
+      "id": "D-2026-1186",
+      "donorName": "Rania Bouzid",
+      "bloodGroup": "O−",
+      "centreName": "CRTS Sfax",
+      "channel": "EN_LIGNE",
+      "rendezVousReference": "RDV-2026-0445",
+      "step": "PRELEVEMENT",
+      "startedAt": "2026-11-12T08:50",
+      "elapsedMinutes": 48,
+      "systolic": 118,
+      "diastolic": 76,
+      "haemoglobin": 14.1,
+      "decision": "APTE"
+    },
+    "D-2026-1185": {
+      "id": "D-2026-1185",
+      "donorName": "Walid Sassi",
+      "bloodGroup": "B+",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "PRELEVEMENT",
+      "startedAt": "2026-11-12T08:44",
+      "elapsedMinutes": 54,
+      "systolic": 124,
+      "diastolic": 79,
+      "haemoglobin": 15.0,
+      "decision": "APTE"
+    },
+    "D-2026-1184": {
+      "id": "D-2026-1184",
+      "donorName": "Salma Jlassi",
+      "bloodGroup": "A+",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "REPOS",
+      "startedAt": "2026-11-12T08:30",
+      "elapsedMinutes": 68,
+      "systolic": 121,
+      "diastolic": 78,
+      "haemoglobin": 13.9,
+      "decision": "APTE",
+      "collectedAt": "2026-11-12T09:02",
+      "durationMinutes": 9,
+      "volumeMl": 450,
+      "nationalDonationNumber": "NDN-2026-118830",
+      "restStartedAt": "2026-11-12T09:11",
+      "restEndsAt": "2026-11-12T09:26",
+      "restMinutesLeft": 12
+    },
+    "D-2026-1183": {
+      "id": "D-2026-1183",
+      "donorName": "Anis Belhaj",
+      "bloodGroup": "O+",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "REPOS",
+      "startedAt": "2026-11-12T08:26",
+      "elapsedMinutes": 72,
+      "restMinutesLeft": 9
+    },
+    "D-2026-1182": {
+      "id": "D-2026-1182",
+      "donorName": "Farah Mansouri",
+      "bloodGroup": "A−",
+      "centreName": "CRTS Sfax",
+      "channel": "EN_LIGNE",
+      "step": "REPOS",
+      "startedAt": "2026-11-12T08:22",
+      "elapsedMinutes": 76,
+      "restMinutesLeft": 5
+    },
+    "D-2026-1181": {
+      "id": "D-2026-1181",
+      "donorName": "Bilel Hachicha",
+      "bloodGroup": "O−",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "REPOS",
+      "startedAt": "2026-11-12T08:18",
+      "elapsedMinutes": 80,
+      "restMinutesLeft": 1
+    },
+    "D-2026-1180": {
+      "id": "D-2026-1180",
+      "donorName": "Sonia Dridi",
+      "bloodGroup": "O+",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "TERMINE",
+      "startedAt": "2026-11-12T08:02",
+      "certificateStatus": "A_EMETTRE",
+      "volumeMl": 450,
+      "nationalDonationNumber": "NDN-2026-118806"
+    },
+    "D-2026-1179": {
+      "id": "D-2026-1179",
+      "donorName": "Rached Ayari",
+      "bloodGroup": "A+",
+      "centreName": "CRTS Sfax",
+      "channel": "EN_LIGNE",
+      "step": "TERMINE",
+      "startedAt": "2026-11-12T07:55",
+      "certificateStatus": "EMIS",
+      "volumeMl": 450,
+      "nationalDonationNumber": "NDN-2026-118801"
+    },
+    "D-2026-1178": {
+      "id": "D-2026-1178",
+      "donorName": "Leila Nasri",
+      "bloodGroup": "B−",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "TERMINE",
+      "startedAt": "2026-11-12T07:48",
+      "certificateStatus": "EMIS",
+      "volumeMl": 450,
+      "nationalDonationNumber": "NDN-2026-118795"
+    },
+    "D-2026-1177": {
+      "id": "D-2026-1177",
+      "donorName": "Tarek Mzoughi",
+      "bloodGroup": "O+",
+      "centreName": "CRTS Sfax",
+      "channel": "EN_LIGNE",
+      "step": "TERMINE",
+      "startedAt": "2026-11-12T07:40",
+      "certificateStatus": "EMIS",
+      "volumeMl": 450,
+      "nationalDonationNumber": "NDN-2026-118788"
+    },
+    "D-2026-1176": {
+      "id": "D-2026-1176",
+      "donorName": "Mariem Chaari",
+      "bloodGroup": "A−",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "TERMINE",
+      "startedAt": "2026-11-12T07:33",
+      "certificateStatus": "EMIS",
+      "volumeMl": 450,
+      "nationalDonationNumber": "NDN-2026-118780"
+    },
+    "D-2026-1175": {
+      "id": "D-2026-1175",
+      "donorName": "Yassine Bouazizi",
+      "bloodGroup": "O−",
+      "centreName": "CRTS Sfax",
+      "channel": "SUR_PLACE",
+      "step": "TERMINE",
+      "startedAt": "2026-11-12T07:26",
+      "certificateStatus": "EMIS",
+      "volumeMl": 450,
+      "nationalDonationNumber": "NDN-2026-118773"
+    },
+    "D-2026-1174": {
+      "id": "D-2026-1174",
+      "donorName": "Omar Khelifi",
+      "bloodGroup": "AB+",
+      "centreName": "CRTS Sfax",
+      "channel": "EN_LIGNE",
+      "step": "TERMINE",
+      "startedAt": "2026-11-12T07:18",
+      "certificateStatus": "EMIS",
+      "volumeMl": 450,
+      "nationalDonationNumber": "NDN-2026-118766"
+    }
+  },
+  "board": [
+    {
+      "step": "ACCUEIL",
+      "visitIds": [
+        "D-2026-1194",
+        "D-2026-1193",
+        "RDV-0442",
+        "D-2026-1192",
+        "D-2026-1191"
+      ]
+    },
+    {
+      "step": "ENTRETIEN_MEDICAL",
+      "visitIds": ["D-2026-1189", "D-2026-1188", "D-2026-1187"]
+    },
+    {
+      "step": "PRELEVEMENT",
+      "visitIds": ["D-2026-1186", "D-2026-1185"]
+    },
+    {
+      "step": "REPOS",
+      "visitIds": [
+        "D-2026-1184",
+        "D-2026-1183",
+        "D-2026-1182",
+        "D-2026-1181"
+      ]
+    },
+    {
+      "step": "TERMINE",
+      "visitIds": [
+        "D-2026-1180",
+        "D-2026-1179",
+        "D-2026-1178",
+        "D-2026-1177",
+        "D-2026-1176",
+        "D-2026-1175",
+        "D-2026-1174"
+      ]
+    }
+  ]
+}

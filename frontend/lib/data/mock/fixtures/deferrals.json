@@ -1,0 +1,44 @@
+{
+  "today": "2026-11-12",
+  "reasons": [
+    { "code": "TATOUAGE", "label": "Tattoo", "weeks": 4, "durationLabel": "4 weeks" },
+    { "code": "PIERCING", "label": "Piercing", "weeks": 4, "durationLabel": "4 weeks" },
+    { "code": "CHIRURGIE", "label": "Surgery", "weeks": 13, "durationLabel": "3 months" },
+    { "code": "ANTIBIOTIQUES", "label": "Antibiotics", "weeks": 2, "durationLabel": "2 weeks" },
+    { "code": "INFECTION", "label": "Infection", "weeks": 2, "durationLabel": "2 weeks" }
+  ],
+  "donors": [
+    {
+      "cin": "08123456",
+      "name": "Amira Ben Salah",
+      "bloodGroup": "O−",
+      "lastDonation": "2026-08-12",
+      "currentDeferral": {
+        "id": "AJ-2026-0031",
+        "motif": "TATOUAGE",
+        "startDate": "2026-11-12",
+        "endDate": "2026-12-12",
+        "note": "Tattoo four weeks ago — defer until healing is complete."
+      }
+    },
+    {
+      "cin": "08123457",
+      "name": "Sami Kacem",
+      "bloodGroup": "O+",
+      "lastDonation": "2026-05-20"
+    },
+    {
+      "cin": "08123459",
+      "name": "Ines Chaabane",
+      "bloodGroup": "A+",
+      "lastDonation": "2026-09-02",
+      "currentDeferral": {
+        "id": "AJ-2026-0028",
+        "motif": "ANTIBIOTIQUES",
+        "startDate": "2026-11-04",
+        "endDate": "2026-11-18",
+        "note": "Antibiotic treatment, two weeks."
+      }
+    }
+  ]
+}

@@ -24,6 +24,26 @@ abstract interface class AppointmentRepository {
   /// appointment rather than booking a new one.
   Future<List<SlotDay>> days({required String centreId, bool forMove = false});
 
+  /// The centre's own week of slots, with capacity and fill, as the staff see
+  /// it (`GET /api/v1/centres/{id}/creneaux`).
+  Future<List<SlotDay>> centreDays({required String centreId});
+
+  /// Create the slots of a period (`POST /api/v1/centres/{id}/creneaux`,
+  /// staff or admin). A slot can only take as many appointments as it has
+  /// places (R22).
+  ///
+  /// [variant] is a demo control for the contract failures (`overlap` → 409,
+  /// `invalid-capacity` → 400, `unavailable` → 503).
+  Future<SlotDay> createSlots({
+    required String centreId,
+    required DateTime date,
+    required String from,
+    required String to,
+    required int capacity,
+    SlotRepeat repeat,
+    String? variant,
+  });
+
   /// Book a slot from home (`canal = EN_LIGNE`).
   ///
   /// [variant] is a demo control that forces one of the contract failures

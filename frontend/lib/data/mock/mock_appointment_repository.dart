@@ -18,6 +18,7 @@ class MockAppointmentRepository implements AppointmentRepository {
   List<Appointment>? _past;
   AppointmentSummary? _summary;
   List<Centre>? _centres;
+  List<SlotDay>? _centreDays;
   int _sequence = 460;
 
   @override
@@ -67,6 +68,88 @@ class MockAppointmentRepository implements AppointmentRepository {
     return (jsonDecode(raw) as List<dynamic>)
         .map((item) => SlotDay.fromJson(item as Map<String, dynamic>))
         .toList(growable: false);
+  }
+
+  @override
+  Future<List<SlotDay>> centreDays({required String centreId}) async {
+    await _latency();
+    return List<SlotDay>.unmodifiable(_centreDays ??= await _loadCentreDays());
+  }
+
+  @override
+  Future<SlotDay> createSlots({
+    required String centreId,
+    required DateTime date,
+    required String from,
+    required String to,
+    required int capacity,
+    SlotRepeat repeat = SlotRepeat.single,
+    String? variant,
+  }) async {
+    await _latency();
+    switch (variant) {
+      case 'overlap':
+        throw const ApiError(
+          status: 409,
+          message: 'SLOT_OVERLAP',
+          fieldErrors: {
+            'range': 'Those hours already have slots. Choose another range.',
+          },
+        );
+      case 'invalid-capacity':
+        throw const ApiError(
+          status: 400,
+          message: 'INVALID_CAPACITY',
+          fieldErrors: {'capacity': 'A slot needs at least one place.'},
+        );
+      case 'unavailable':
+        throw const ApiError(
+          status: 503,
+          message: 'SLOT_SERVICE_UNAVAILABLE',
+        );
+    }
+
+    final times = _hourly(from, to, capacity);
+    if (times.isEmpty) {
+      throw const ApiError(
+        status: 400,
+        message: 'INVALID_RANGE',
+        fieldErrors: {'range': 'The end time must be after the start time.'},
+      );
+    }
+
+    // `repeat` is a staff convenience: the contract creates one slot per
+    // `CreneauRequest`, so a daily or weekly run is several requests.
+    final dates = switch (repeat) {
+      SlotRepeat.single => [date],
+      SlotRepeat.daily => [
+        for (var i = 0; i < 7; i++) DateTime(date.year, date.month, date.day + i),
+      ],
+      SlotRepeat.weekly => [
+        for (var i = 0; i < 4; i++)
+          DateTime(date.year, date.month, date.day + i * 7),
+      ],
+    };
+
+    final days = _centreDays ??= await _loadCentreDays();
+    for (final day in dates) {
+      final index = days.indexWhere(
+        (item) =>
+            item.date.year == day.year &&
+            item.date.month == day.month &&
+            item.date.day == day.day,
+      );
+      if (index >= 0) {
+        days[index] = SlotDay(
+          date: days[index].date,
+          times: [...days[index].times, ...times],
+        );
+      } else {
+        days.add(SlotDay(date: day, times: times));
+      }
+    }
+    days.sort((a, b) => a.date.compareTo(b.date));
+    return SlotDay(date: date, times: times);
   }
 
   @override
@@ -133,9 +216,41 @@ class MockAppointmentRepository implements AppointmentRepository {
     if (index >= 0) list.removeAt(index);
   }
 
+  /// Hourly slots between [from] and [to]: `09:00` → `12:00` gives three.
+  List<SlotTime> _hourly(String from, String to, int capacity) {
+    final start = _minutes(from);
+    final end = _minutes(to);
+    if (start == null || end == null || end <= start) return const [];
+    final times = <SlotTime>[];
+    for (var cursor = start; cursor < end; cursor += 60) {
+      final next = cursor + 60 > end ? end : cursor + 60;
+      times.add(
+        SlotTime(
+          start: _hhmm(cursor),
+          end: _hhmm(next),
+          capacity: capacity,
+          placesLeft: capacity,
+        ),
+      );
+    }
+    return times;
+  }
+
+  int? _minutes(String value) {
+    final parts = value.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return hour * 60 + minute;
+  }
+
+  String _hhmm(int minutes) =>
+      '${(minutes ~/ 60).toString().padLeft(2, '0')}:'
+      '${(minutes % 60).toString().padLeft(2, '0')}';
+
   /// The prepared contract failures, reachable with `?state=` on the screens.
-  void _guard(String? variant) {
-    switch (variant) {
+  void _guard(String? variant) {    switch (variant) {
       case 'slot-full':
         throw const ApiError(
           status: 409,
@@ -159,6 +274,15 @@ class MockAppointmentRepository implements AppointmentRepository {
           },
         );
     }
+  }
+
+  Future<List<SlotDay>> _loadCentreDays() async {
+    final raw = await rootBundle.loadString(
+      'lib/data/mock/fixtures/centre_slots.json',
+    );
+    return (jsonDecode(raw) as List<dynamic>)
+        .map((item) => SlotDay.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<Appointment>> _loadAppointments(String key) async {

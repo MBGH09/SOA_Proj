@@ -1,0 +1,40 @@
+[
+  {
+    "date": "2026-11-11",
+    "times": [
+      { "start": "09:00", "end": "10:00", "capacity": 6, "placesLeft": 3 },
+      { "start": "10:00", "end": "11:00", "capacity": 6, "placesLeft": 5 },
+      { "start": "11:00", "end": "12:00", "capacity": 6, "placesLeft": 6 },
+      { "start": "14:00", "end": "15:00", "capacity": 6, "placesLeft": 2 },
+      { "start": "15:00", "end": "16:00", "capacity": 6, "placesLeft": 0 }
+    ]
+  },
+  {
+    "date": "2026-11-12",
+    "times": [
+      { "start": "09:00", "end": "10:00", "capacity": 6, "placesLeft": 0 },
+      { "start": "10:00", "end": "11:00", "capacity": 6, "placesLeft": 2 },
+      { "start": "11:00", "end": "12:00", "capacity": 6, "placesLeft": 4 },
+      { "start": "14:00", "end": "15:00", "capacity": 6, "placesLeft": 6 },
+      { "start": "15:00", "end": "16:00", "capacity": 6, "placesLeft": 3 }
+    ]
+  },
+  {
+    "date": "2026-11-13",
+    "times": [
+      { "start": "09:00", "end": "10:00", "capacity": 6, "placesLeft": 1 },
+      { "start": "10:00", "end": "11:00", "capacity": 6, "placesLeft": 3 },
+      { "start": "11:00", "end": "12:00", "capacity": 6, "placesLeft": 0 },
+      { "start": "14:00", "end": "15:00", "capacity": 6, "placesLeft": 4 },
+      { "start": "15:00", "end": "16:00", "capacity": 6, "placesLeft": 6 }
+    ]
+  },
+  {
+    "date": "2026-11-14",
+    "times": [
+      { "start": "09:00", "end": "10:00", "capacity": 6, "placesLeft": 6 },
+      { "start": "10:00", "end": "11:00", "capacity": 6, "placesLeft": 6 },
+      { "start": "11:00", "end": "12:00", "capacity": 6, "placesLeft": 4 }
+    ]
+  }
+]

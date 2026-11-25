@@ -17,6 +17,10 @@ Populate one file per resource (names match `docs/architecture.md` §5):
 | `appeals.json` | open appeals | at least one Critical (O−) |
 | `requests.json` | hospital list / detail | all five statuses: waiting, satisfied, supplying, shortage, cancelled |
 | `stock.json` | stock dashboard / thresholds | 24 gauges (8 groups × 3 components) per place |
+| `visits.json` | centre today, board, donation visit | 18 visits across every step (+ a terminal pair) and the board's columns |
+| `centre_day.json` | C1 today | figures, agenda (open / waiting / collected / rest / absent), queue, stock, low group |
+| `deferrals.json` | C4 record a deferral | reasons, reference deferrals, an existing active one |
+| `centre_slots.json` | C5 slot management | four days, capacity 6, one full slot and one partially booked |
 
 Rules:
 
