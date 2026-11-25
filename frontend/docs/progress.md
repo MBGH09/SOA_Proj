@@ -29,8 +29,8 @@ Keep this list current — one line per FigCraft screen.
 - [x] 04 · Book a slot — mobile + web (centre → time → confirm)
 - [x] 05 · My appointments — mobile + web (upcoming / past, cancel)
 - [x] 06 · Move appointment — mobile + web
-- [ ] 07 · My certificates
-- [ ] 08 · Verify a certificate
+- [x] 07 · My certificates — mobile + web (issued / preparing / empty)
+- [x] 08 · Verify a certificate — mobile + web (empty / valid / not valid / not found)
 
 ### Centre staff
 
@@ -74,4 +74,28 @@ Keep this list current — one line per FigCraft screen.
   a visit is opened from Today or the Board. Revisit if a Visits list screen is added.
 - `MockScenario` plumbing exists but is not yet wired into every mock repository (Part 5).
 - Add loading / empty / error states per screen as they land.
+- Every data provider opts out of Riverpod 3's automatic retry (`noRetry` in
+  `core/providers/core_providers.dart`). Riverpod 3 retries a failed provider ten times with a
+  backoff, which hid the contract answers behind a restarting spinner: a 400, 404 or 409 is
+  final and must be shown once. Retry and backoff for the transient 503/504 answers belong to
+  the Gateway client (study §8), so revisit this when the API is wired.
+- 07 · My certificates lists what `certificates.json` holds: the frame's two cards (one issued,
+  one preparing). The older certificate numbers named by 05's past visits are not repeated in
+  that fixture; the real service returns every certificate of the donor.
+- 07 · Download PDF and Print go through the new `CertificatePdfService`. The mock answers with
+  the file name the endpoint will produce (`GET /dons/{id}/certificat`, `Accept:
+  application/pdf`) and writes nothing, so the screen confirms "Requested CERT-….pdf" until the
+  backend is connected. A pending certificate has no file: its Download PDF is disabled and
+  Print explains that the number is still being prepared.
+- 08 · Verify's not-found frame prints a second copy of the field inside the answer card. The
+  app puts that error on the real field (red outline + "No certificate found with this number.")
+  and keeps the "Not found" badge and the explanation in the answer card, so nothing is read
+  twice.
+- 08 · `valide = false` is handled as a "Not valid" answer (critical badge, "cannot be counted
+  for compensation"). The contract allows it, the frames do not show it.
+- 08 · The answer prints ISSUING AUTHORITY from an optional `autorite` field: the contract's
+  `CertificatVerification` carries `valide`, `date` and `centre` only. Either the contract owner
+  adds it or the row is dropped.
+- 08 · `?state=valid|invalid|not-found|unavailable` is a demo control that prefills the number
+  of the frame and short-circuits the lookup; Part 5 folds it into the shared `MockScenario`.
 - Replace the mock repository bindings with the Gateway client when the backend is ready.

@@ -13,7 +13,7 @@ Populate one file per resource (names match `docs/architecture.md` §5):
 | `slots.json` | book / move appointment | free places for the next 7 days, capacity 4 |
 | `appointments.json` | my appointments, centre today | mixed statuses |
 | `donations.json` | donation visit + board | one finished donation with an issued certificate |
-| `certificates.json` | my certificates, verify | issued + preparing + one invalid number |
+| `certificates.json` | my certificates, verify | one issued, one preparing, one number that is not valid |
 | `appeals.json` | open appeals | at least one Critical (O−) |
 | `requests.json` | hospital list / detail | all five statuses: waiting, satisfied, supplying, shortage, cancelled |
 | `stock.json` | stock dashboard / thresholds | 24 gauges (8 groups × 3 components) per place |

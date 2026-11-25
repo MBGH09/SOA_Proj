@@ -4,8 +4,10 @@ import '../../features/donor/presentation/screens/book_slot_screen.dart';
 import '../../features/donor/presentation/screens/eligibility_screen.dart';
 import '../../features/donor/presentation/screens/move_appointment_screen.dart';
 import '../../features/donor/presentation/screens/my_appointments_screen.dart';
+import '../../features/donor/presentation/screens/my_certificates_screen.dart';
 import '../../features/donor/presentation/screens/open_appeals_screen.dart';
 import '../../features/donor/presentation/screens/register_donor_screen.dart';
+import '../../features/donor/presentation/screens/verify_certificate_screen.dart';
 import '../../shared/layouts/app_shell.dart';
 import '../../shared/widgets/placeholder_screen.dart';
 
@@ -48,8 +50,14 @@ final appRouter = GoRouter(
           path: '/donor/appointments',
           builder: (context, state) => const MyAppointmentsScreen(),
         ),
-        _placeholder('/donor/certificates', 'My certificates'),
-        _placeholder('/donor/verify', 'Verify a certificate'),
+        GoRoute(
+          path: '/donor/certificates',
+          builder: (context, state) => const MyCertificatesScreen(),
+        ),
+        GoRoute(
+          path: '/donor/verify',
+          builder: (context, state) => const VerifyCertificateScreen(),
+        ),
         _placeholder('/donor/stock', 'Stock levels'),
         // Centre staff
         _placeholder('/centre/today', 'Today at the centre'),

@@ -17,8 +17,8 @@ and `_web.dart` copies.
 | 04 | Book a slot | 390 + 1440 | `/donor/book` | `book_slot_screen.dart` | free slots, 409 slot full, deferral, already booked |
 | 05 | My appointments | 390 + 1440 | `/donor/appointments` | `my_appointments_screen.dart` | upcoming / past, cancel |
 | 06 | Move appointment | 390 + 1440 | `/donor/appointments/move` | `move_appointment_screen.dart` | new slot, 409 |
-| 07 | My certificates | 390 + 1440 | `/donor/certificates` | `my_certificates_screen.dart` | preparing / issued, refresh |
-| 08 | Verify a certificate | 390 + 1440 | `/donor/verify` | `verify_certificate_screen.dart` | found / not found / invalid (3 frames) |
+| 07 | My certificates | 390 + 1440 | `/donor/certificates` | `my_certificates_screen.dart` | issued / preparing, empty, 503, refresh |
+| 08 | Verify a certificate | 390 + 1440 | `/donor/verify` | `verify_certificate_screen.dart` | empty input / valid / not valid / not found (3 frames + contract) |
 
 ## Centre staff — `features/centre/presentation/screens/`
 
@@ -63,6 +63,7 @@ and `_web.dart` copies.
 | circular icon tile (centre pin, past visit) | `widgets/app_icon_avatar.dart` |
 | closed-list field (blood group, place) | `widgets/app_select_field.dart` |
 | `Badge / Neutral · Success · Warning · Critical` | `widgets/app_badge.dart` |
+| label/value grid (certificate fields, verification answer) | `widgets/app_detail_grid.dart` |
 | `ListTile` | `widgets/app_list_tile.dart` |
 | `DataTable` | `widgets/app_data_table.dart` |
 | `StatCard` | `widgets/app_stat_card.dart` |
