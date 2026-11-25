@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/core_providers.dart';
 import '../../../../data/mock/mock_appointment_repository.dart';
 import '../../../../data/models/appointment.dart';
 import '../../../../data/models/appointment_summary.dart';
@@ -13,24 +14,29 @@ final appointmentRepositoryProvider = Provider<AppointmentRepository>(
 
 final upcomingAppointmentsProvider = FutureProvider<List<Appointment>>(
   (ref) => ref.watch(appointmentRepositoryProvider).upcoming(),
+  retry: noRetry,
 );
 
 final pastAppointmentsProvider = FutureProvider<List<Appointment>>(
   (ref) => ref.watch(appointmentRepositoryProvider).past(),
+  retry: noRetry,
 );
 
 final appointmentSummaryProvider = FutureProvider<AppointmentSummary>(
   (ref) => ref.watch(appointmentRepositoryProvider).summary(),
+  retry: noRetry,
 );
 
 final centresProvider = FutureProvider<List<Centre>>(
   (ref) => ref.watch(appointmentRepositoryProvider).centres(),
+  retry: noRetry,
 );
 
 /// Free slots of a centre for the booking flow.
 final slotDaysProvider = FutureProvider.family<List<SlotDay>, String>(
   (ref, centreId) =>
       ref.watch(appointmentRepositoryProvider).days(centreId: centreId),
+  retry: noRetry,
 );
 
 /// Free slots offered when moving an existing appointment.
@@ -38,4 +44,5 @@ final moveDaysProvider = FutureProvider.family<List<SlotDay>, String>(
   (ref, centreId) => ref
       .watch(appointmentRepositoryProvider)
       .days(centreId: centreId, forMove: true),
+  retry: noRetry,
 );
