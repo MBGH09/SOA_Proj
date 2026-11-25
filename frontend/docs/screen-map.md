@@ -24,11 +24,11 @@ and `_web.dart` copies.
 
 | # | Screen | Layouts | Route | File | Key states |
 |---|---|---|---|---|---|
-| C1 | Today at the centre | 1440 | `/centre/today` | `today_screen.dart` | agenda, capacity, start visit |
-| C2 | Donation board | 1440 | `/centre/board` | `donation_board_screen.dart` | 4 columns/steps, active-step lock |
-| C3 | Donation visit | 1440 + 390 | `/centre/visits/:id` | `donation_visit_screen.dart` | reception → interview → collection → rest |
-| C4 | Record a deferral | 1440 | `/centre/deferrals/new` | `record_deferral_screen.dart` | reason, start/end date, invalid range |
-| C5 | Slot management | 1440 | `/centre/slots` | `slot_management_screen.dart` | capacity default 4, create slot |
+| C1 | Today at the centre | 1440 + 390 | `/centre/today` | `today_screen.dart` | figures, agenda (open / check in / close), queue, stock, low-stock alert |
+| C2 | Donation board | 1440 + 390 | `/centre/board` | `donation_board_screen.dart` | 5 columns (Reception → Done), empty board, 503 |
+| C3 | Donation visit | 1440 + 390 | `/centre/visits/:id` | `donation_visit_screen.dart` | reception → interview → collection → rest; 409 wrong step, 400 volume, 409 rest |
+| C4 | Record a deferral | 1440 + 390 | `/centre/deferrals/new` | `record_deferral_screen.dart` | CIN lookup, reason, duration, start/end date, invalid range, current deferral |
+| C5 | Slot management | 1440 + 390 | `/centre/slots` | `slot_management_screen.dart` | day table + summary, create slots (single/daily/weekly), overlap 409 |
 
 ## Hospital — `features/hospital/presentation/screens/`
 

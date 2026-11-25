@@ -34,11 +34,11 @@ Keep this list current — one line per FigCraft screen.
 
 ### Centre staff
 
-- [ ] C1 · Today at the centre
-- [ ] C2 · Donation board
-- [ ] C3 · Donation visit
-- [ ] C4 · Record a deferral
-- [ ] C5 · Slot management
+- [x] C1 · Today at the centre — web + mobile (quiet day, 503)
+- [x] C2 · Donation board — web + mobile (5 columns, empty board)
+- [x] C3 · Donation visit — web + mobile (reception → interview → collection → rest)
+- [x] C4 · Record a deferral — web + mobile (lookup, invalid range)
+- [x] C5 · Slot management — web + mobile (per-day summary, create slots, overlap 409)
 
 ### Hospital
 
@@ -99,3 +99,31 @@ Keep this list current — one line per FigCraft screen.
 - 08 · `?state=valid|invalid|not-found|unavailable` is a demo control that prefills the number
   of the frame and short-circuits the lookup; Part 5 folds it into the shared `MockScenario`.
 - Replace the mock repository bindings with the Gateway client when the backend is ready.
+- C1 · The contract records reception when the visit is created (`POST /dons`), which is
+  `VisitRepository.start`. A walk-in that is already sitting at `ACCUEIL` is completed by the
+  extra `recordReception(visitId, cin, questionnaire)`, which moves it to
+  `ENTRETIEN_MEDICAL`. Either the contract gains that call or reception has to be part of
+  `POST /dons`; agree with the contract owner before wiring the API.
+- C1 · Close (an appointment the donor never attended) calls `VisitRepository.markAbsent`.
+  The contract has no endpoint for it; the mock moves the appointment to `ABSENT` and removes
+  it from the day. Needs a contract endpoint.
+- C1 · `CentreDayStats.inInterview` is carried explicitly instead of derived, so the frame's
+  "3 / 1 unfit so far" stays true. The real service must return it or the card computes it
+  from the visits of the day.
+- C2 · The board shows five columns (Reception, Interview, Collection, Rest, **Done**). The
+  frame draws four; `TERMINE` visits stay on the board until the day closes.
+- C3 · 450 ml and the 15-minute rest are enforced by the mock as 400 `INVALID_VOLUME` (R8) and
+  409 `REST_NOT_FINISHED` (R9); the step order is 409 `WRONG_STEP` (R6). These numbers will
+  come from `VOLUME_PRELEVEMENT_ML` / `REPOS_MIN_MINUTES` once a config endpoint exists.
+- C4 · Reasons are the five contract values (`TATOUAGE`, `PIERCING`, `CHIRURGIE`,
+  `ANTIBIOTIQUES`, `INFECTION`). The end date is derived from start + duration and cannot be
+  before the start (`INVALID_RANGE`, 400).
+- C5 · `SlotRepeat` (single / daily / weekly) is a staff convenience: the contract creates one
+  slot per `CreneauRequest`, so a run is several requests. The mock merges them into its
+  in-memory day so the table and the summary update.
+- C1–C5 · `?state=quiet|empty|unavailable|unknown|wrong-step|rest-not-finished|overlap|
+  invalid-capacity` are demo controls; Part 5 folds them into the shared `MockScenario`.
+- `TypeCentre` in `donneurs.yaml` (`CNTS`, `CRTS`, `BANQUE_HOPITAL`, `CLINIQUE_SANS_STOCK`,
+  `COLLECTE_MOBILE`) does not match the app's `CentreKind` (`CENTRE_PERMANENT`,
+  `BANQUE_HOSPITALIERE`, `COLLECTE_MOBILE`) used by `fixtures/centres.json`. Reconcile before
+  the centres are wired to the real API.
