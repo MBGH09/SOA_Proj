@@ -1,5 +1,10 @@
 import 'package:go_router/go_router.dart';
 
+import '../../features/centre/presentation/screens/donation_board_screen.dart';
+import '../../features/centre/presentation/screens/donation_visit_screen.dart';
+import '../../features/centre/presentation/screens/record_deferral_screen.dart';
+import '../../features/centre/presentation/screens/slot_management_screen.dart';
+import '../../features/centre/presentation/screens/today_screen.dart';
 import '../../features/donor/presentation/screens/book_slot_screen.dart';
 import '../../features/donor/presentation/screens/eligibility_screen.dart';
 import '../../features/donor/presentation/screens/move_appointment_screen.dart';
@@ -60,11 +65,26 @@ final appRouter = GoRouter(
         ),
         _placeholder('/donor/stock', 'Stock levels'),
         // Centre staff
-        _placeholder('/centre/today', 'Today at the centre'),
-        _placeholder('/centre/board', 'Donation board'),
-        _placeholder('/centre/visits/:id', 'Donation visit'),
-        _placeholder('/centre/deferrals/new', 'Record a deferral'),
-        _placeholder('/centre/slots', 'Slot management'),
+        GoRoute(
+          path: '/centre/today',
+          builder: (context, state) => const TodayScreen(),
+        ),
+        GoRoute(
+          path: '/centre/board',
+          builder: (context, state) => const DonationBoardScreen(),
+        ),
+        GoRoute(
+          path: '/centre/visits/:id',
+          builder: (context, state) => const DonationVisitScreen(),
+        ),
+        GoRoute(
+          path: '/centre/deferrals/new',
+          builder: (context, state) => const RecordDeferralScreen(),
+        ),
+        GoRoute(
+          path: '/centre/slots',
+          builder: (context, state) => const SlotManagementScreen(),
+        ),
         // Hospital
         _placeholder('/hospital/requests/new', 'New request'),
         _placeholder('/hospital/requests/:id', 'Request detail'),
