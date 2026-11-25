@@ -1,0 +1,126 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: gateway
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:2000}
+            response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:${GATEWAY_RESPONSE_TIMEOUT_MS:10000}ms}
+
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "${CORS_ALLOWED_ORIGINS:http://localhost:3000}"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - Authorization
+                  - Content-Type
+                  - Accept
+                  - X-Request-Id
+                exposedHeaders:
+                  - Location
+                  - X-Request-Id
+
+          routes:
+            - id: donneurs-centres-creneaux
+              uri: ${DONNEURS_URL:http://service-donneurs:8081}
+              order: -1
+              predicates:
+                - Path=/api/v1/centres/{id}/creneaux
+
+            - id: donneurs-centres
+              uri: ${DONNEURS_URL:http://service-donneurs:8081}
+              predicates:
+                - Path=/api/v1/centres/**
+
+            - id: donneurs-donneurs
+              uri: ${DONNEURS_URL:http://service-donneurs:8081}
+              predicates:
+                - Path=/api/v1/donneurs/**
+
+            - id: donneurs-rendez-vous
+              uri: ${DONNEURS_URL:http://service-donneurs:8081}
+              predicates:
+                - Path=/api/v1/rendez-vous/**
+
+            - id: donneurs-dons
+              uri: ${DONNEURS_URL:http://service-donneurs:8081}
+              predicates:
+                - Path=/api/v1/dons/**
+
+            - id: donneurs-certificats
+              uri: ${DONNEURS_URL:http://service-donneurs:8081}
+              predicates:
+                - Path=/api/v1/certificats/**
+
+            - id: demandes-demandes
+              uri: ${DEMANDES_URL:http://service-demandes:8082}
+              predicates:
+                - Path=/api/v1/demandes/**
+
+            - id: demandes-appels
+              uri: ${DEMANDES_URL:http://service-demandes:8082}
+              predicates:
+                - Path=/api/v1/appels/**
+
+            - id: demandes-stock-flux
+              uri: ${DEMANDES_URL:http://service-demandes:8082}
+              order: -1
+              metadata:
+                response-timeout: -1
+              predicates:
+                - Path=/api/v1/stock/niveaux/flux
+
+            - id: demandes-stock
+              uri: ${DEMANDES_URL:http://service-demandes:8082}
+              predicates:
+                - Path=/api/v1/stock/**
+
+gateway:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+    demo-users:
+      donor:
+        username: ${DEMO_DONOR_USERNAME:${DEMO_DONOR_USER:donor}}
+        password: ${DEMO_DONOR_PASSWORD:}
+      staff:
+        username: ${DEMO_STAFF_USERNAME:${DEMO_STAFF_USER:staff}}
+        password: ${DEMO_STAFF_PASSWORD:}
+      hopital:
+        username: ${DEMO_HOPITAL_USERNAME:${DEMO_HOPITAL_USER:hopital}}
+        password: ${DEMO_HOPITAL_PASSWORD:}
+      admin:
+        username: ${DEMO_ADMIN_USERNAME:${DEMO_ADMIN_USER:admin}}
+        password: ${DEMO_ADMIN_PASSWORD:}
+
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    per-minute: ${RATE_LIMIT_PER_MIN:120}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%X{requestId:-}] %logger{36} - %msg%n"
