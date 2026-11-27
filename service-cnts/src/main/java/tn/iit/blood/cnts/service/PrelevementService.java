@@ -13,6 +13,7 @@ import tn.iit.blood.cnts.ws.generated.EnregistrerPrelevementResponse;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +23,10 @@ public class PrelevementService {
 
     @Value("${cnts.volume-prelevement-ml:450}")
     private int volumeAttenu;
+
+    /** Valeurs autorisées pour le groupe sanguin (R10). */
+    private static final Set<String> GROUPES_VALIDES = Set.of(
+            "A_POS", "A_NEG", "B_POS", "B_NEG", "AB_POS", "AB_NEG", "O_POS", "O_NEG");
 
     @Transactional
     public EnregistrerPrelevementResponse enregistrer(EnregistrerPrelevementRequest req) {
@@ -44,6 +49,14 @@ public class PrelevementService {
         // .value() converts it to String. null-check guards against unmarshalling edge cases.
         if (req.getGroupeSanguin() == null) {
             throw new PrelevementInvalideException("Groupe sanguin inconnu ou invalide");
+        // R10 — Blood group must be a known value.
+        // groupeSanguin est maintenant xs:string dans le XSD (pas l'enum JAXB) pour
+        // que les valeurs inconnues atteignent ce service et remontent via
+        // PrelevementInvalideFault au lieu d'une generic SOAP client-fault.
+        String groupe = req.getGroupeSanguin();
+        if (groupe == null || !GROUPES_VALIDES.contains(groupe)) {
+            throw new PrelevementInvalideException(
+                    "Groupe sanguin inconnu ou invalide : " + groupe);
         }
         String groupe = req.getGroupeSanguin().value();
 
@@ -63,6 +76,7 @@ public class PrelevementService {
         p.setNumeroDonNational(numeroDonNational);
         p.setDonIdLocal(req.getDonIdLocal());
         p.setGroupeSanguin(groupe);
+        p.setGroupeSanguin(groupe);  // String direct — plus de .value()
         p.setVolumeMl(req.getVolumeMl());
         p.setCentreId(req.getCentreId());
         p.setDatePrelevement(datePrelev);

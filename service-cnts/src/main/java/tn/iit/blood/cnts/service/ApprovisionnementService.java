@@ -13,6 +13,7 @@ import tn.iit.blood.cnts.ws.generated.DemanderApprovisionnementRequest;
 import tn.iit.blood.cnts.ws.generated.DemanderApprovisionnementResponse;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +27,11 @@ public class ApprovisionnementService {
 
     @Value("${cnts.delai-critique-minutes:15}")
     private int delaiCritique;
+
+    private static final Set<String> GROUPES_VALIDES = Set.of(
+            "A_POS", "A_NEG", "B_POS", "B_NEG", "AB_POS", "AB_NEG", "O_POS", "O_NEG");
+    private static final Set<String> COMPOSANTS_VALIDES = Set.of("CGR", "PLASMA", "PLAQUETTES");
+    private static final Set<String> URGENCES_VALIDES = Set.of("NORMALE", "HAUTE", "CRITIQUE");
 
     @Transactional
     public DemanderApprovisionnementResponse demander(DemanderApprovisionnementRequest req) {
@@ -45,6 +51,24 @@ public class ApprovisionnementService {
         String urgenceStr = req.getUrgence().value();
         int    quantite   = req.getQuantite();
         boolean critique  = "CRITIQUE".equals(urgenceStr);
+        // R10 — groupeSanguin, composant must be known values (xs:string in XSD → validated here)
+        // urgence reste un enum JAXB (tns:Urgence dans le XSD)
+        String groupe = req.getGroupeSanguin();
+        String composant = req.getComposant();
+        String urgenceStr = req.getUrgence() != null ? req.getUrgence().value() : null;
+
+        if (groupe == null || !GROUPES_VALIDES.contains(groupe)) {
+            throw new StockCentralInsuffisantException("Groupe sanguin invalide : " + groupe);
+        }
+        if (composant == null || !COMPOSANTS_VALIDES.contains(composant)) {
+            throw new StockCentralInsuffisantException("Composant invalide : " + composant);
+        }
+        if (urgenceStr == null || !URGENCES_VALIDES.contains(urgenceStr)) {
+            throw new StockCentralInsuffisantException("Urgence invalide : " + urgenceStr);
+        }
+
+        int quantite = req.getQuantite();
+        boolean critique = "CRITIQUE".equals(urgenceStr);
 
         // R14 — Try CRTS of the region first, then CNTS-TUNIS
         String crtsId = "CRTS-" + req.getRegion().toUpperCase();
