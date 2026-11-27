@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.5</version>
+        <version>4.1.2</version>
         <relativePath/>
     </parent>
 
@@ -18,22 +18,23 @@
     <description>Demandes de sang des hopitaux, appels publics et compensation (REST)</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <springdoc.version>2.6.0</springdoc.version>
-        <!-- gRPC + protobuf -->
-        <grpc.version>1.65.1</grpc.version>
-        <protobuf.version>3.25.3</protobuf.version>
-        <grpc-spring-boot-starter.version>3.1.0.RELEASE</grpc-spring-boot-starter.version>
+        <!-- gRPC officiel Spring (compatible Boot 4.x) -->
+        <spring-grpc.version>1.1.1</spring-grpc.version>
+        <grpc.version>1.73.0</grpc.version>
+        <protobuf.version>4.31.1</protobuf.version>
         <!-- Resilience4j -->
-        <resilience4j.version>2.2.0</resilience4j.version>
+        <resilience4j.version>2.3.0</resilience4j.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- BOM officiel Spring gRPC (compatible Boot 4.x) -->
             <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-bom</artifactId>
-                <version>${grpc.version}</version>
+                <groupId>org.springframework.grpc</groupId>
+                <artifactId>spring-grpc-dependencies</artifactId>
+                <version>${spring-grpc.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -87,41 +88,26 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
-        <!-- ===== gRPC client ===== -->
+        <!-- ===== gRPC client (officiel Spring, compatible Boot 4.x) ===== -->
         <dependency>
-            <groupId>net.devh</groupId>
-            <artifactId>grpc-client-spring-boot-starter</artifactId>
-            <version>${grpc-spring-boot-starter.version}</version>
+            <groupId>org.springframework.grpc</groupId>
+            <artifactId>spring-grpc-spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
+            <version>${grpc.version}</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
-        </dependency>
-        <dependency>
-            <!-- Needed at runtime for grpc-java generated stubs -->
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
-            <version>1.3.2</version>
+            <version>${grpc.version}</version>
         </dependency>
 
         <!-- ===== Resilience4j ===== -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-spring-boot3</artifactId>
-            <version>${resilience4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-circuitbreaker</artifactId>
-            <version>${resilience4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-micrometer</artifactId>
             <version>${resilience4j.version}</version>
         </dependency>
 
