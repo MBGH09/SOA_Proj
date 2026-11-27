@@ -34,17 +34,17 @@ and `_web.dart` copies.
 
 | # | Screen | Layouts | Route | File | Key states |
 |---|---|---|---|---|---|
-| H1 | New request | 1440 | `/hospital/requests/new` | `new_request_screen.dart` | motif/group/component/quantity/urgency, anonymous ref |
-| H2 | Requests list | 1440 | `/hospital/requests` | `requests_list_screen.dart` | 5 statuses, urgency badges, filters |
-| H3 | Request detail | 1440 | `/hospital/requests/:id` | `request_detail_screen.dart` | delivery ETA, compensation progress + cert entry |
-| H4 | Stock dashboard | 1440 | `/hospital/stock` | `stock_dashboard_screen.dart` | live levels vs thresholds, legend |
+| H1 | New request | 1440 + 390 | `/hospital/requests/new` | `new_request_screen.dart` | patient ref (R19), group, component, units (R11), urgency, local stock side card, shortage / 400 / 503 |
+| H2 | Requests list | 1440 + 390 | `/hospital/requests` | `requests_list_screen.dart` | All / Open / Reserved / In delivery / Delivered / Critical, search, 4 figures, empty / 503 |
+| H3 | Request detail | 1440 + 390 | `/hospital/requests/:id` | `request_detail_screen.dart` | reservation + source, order, delivery stages, compensation counter, add certificate (409 R26), correct by hand |
+| H4 | Stock dashboard | 1440 + 390 | `/hospital/stock` | `stock_dashboard_screen.dart` | place chips, Updating live, 4 figures, 8 × 3 board, legend, below-threshold list, 503 |
 
 ## Admin — `features/admin/presentation/screens/`
 
 | # | Screen | Layouts | Route | File | Key states |
 |---|---|---|---|---|---|
-| A1 | Stock thresholds | 1440 | `/admin/thresholds` | `stock_thresholds_screen.dart` | per group × component steppers, save/reset, audit trail |
-| — | Stock dashboard (shared) | 1440 | `/admin/stock` | reuse `hospital/.../stock_dashboard_screen.dart` | same widget, Admin role label |
+| A1 | Stock thresholds | 1440 + 390 | `/admin/thresholds` | `stock_thresholds_screen.dart` | 24 rules ordered by last change, steppers, Save / Reset, current-below red, audit trail, 503 |
+| — | Stock dashboard (shared) | 1440 + 390 | `/admin/stock` | `admin_stock_screen.dart` → H4 widget | same widget, Admin role rail |
 
 ## Shell and shared widgets
 
@@ -68,6 +68,8 @@ and `_web.dart` copies.
 | `DataTable` | `widgets/app_data_table.dart` |
 | `StatCard` | `widgets/app_stat_card.dart` |
 | stock board cell | `widgets/stock_cell.dart` |
+| dense 8 × 3 stock board (H4) | `features/hospital/presentation/widgets/stock_board.dart` |
+| request → badge tone / status helpers | `features/hospital/presentation/widgets/request_status.dart` |
 | step dots | `widgets/app_step_indicator.dart` |
 | `Divider` | `widgets/app_divider.dart` |
 | page title block | `widgets/app_page_header.dart` |

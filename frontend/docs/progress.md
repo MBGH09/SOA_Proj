@@ -42,14 +42,14 @@ Keep this list current — one line per FigCraft screen.
 
 ### Hospital
 
-- [ ] H1 · New request
-- [ ] H2 · Requests list
-- [ ] H3 · Request detail
-- [ ] H4 · Stock dashboard
+- [x] H1 · New request — web + mobile (local stock side card, shortage / invalid / 503)
+- [x] H2 · Requests list — web + mobile (All / Open / Reserved / In delivery / Delivered / Critical, search)
+- [x] H3 · Request detail — web + mobile (reservation, order, delivery, compensation + certificate)
+- [x] H4 · Stock dashboard — web + mobile (3 places, 8 × 3 board, legend, below-threshold list)
 
 ### Admin
 
-- [ ] A1 · Stock thresholds
+- [x] A1 · Stock thresholds — web + mobile (steppers, Save / Reset, audit trail, all 24 rules)
 
 ## Known follow-ups
 
@@ -57,10 +57,9 @@ Keep this list current — one line per FigCraft screen.
   contract needs it: a duplicate CIN is the 409 case (rule R5). Mock CIN `12345678` always
   returns 409, so the conflict state can be reviewed by hand.
 - 03 · Eligibility can be reviewed in each outcome with `?state=eligible` and
-  `?state=not-eligible` (default is the donor's real result, the deferred frame). Part 5
-  replaces this query switch with the shared `MockScenario` control.
+  `?state=not-eligible` (default is the donor's real result, the deferred frame).
 - 04 · Book and 06 · Move read the contract failures from `?state=` too
-  (`slot-full`, `day-taken`, `deferred` → 409). Same Part 5 replacement.
+  (`slot-full`, `day-taken`, `deferred` → 409).
 - 04 · Book is one screen with the three steps the frame names (Centre · Time · Confirm); the
   FigCraft frame captures step 2. It opens on the day/time shown in the frame (Thu 12 · 14:00)
   and on the nearest centre, so the first view matches the design.
@@ -72,7 +71,10 @@ Keep this list current — one line per FigCraft screen.
 - The design's staff rail lists five items (Today · Slots · Visits · Deferrals · Board). There is
   no Visits list route in the screen map, so the rail ships Today · Board · Slots · Deferrals and
   a visit is opened from Today or the Board. Revisit if a Visits list screen is added.
-- `MockScenario` plumbing exists but is not yet wired into every mock repository (Part 5).
+- `MockScenario` models the transport outcomes the contract returns (400, 404, 409, 503,
+  accepted). The screens' named demo states (`?state=empty`, `?state=shortage`, …) stay
+  screen-specific: they describe a data situation, not an HTTP status, and a repository maps
+  them to the same `ApiError`s the Gateway will produce. Do not replace one with the other.
 - Add loading / empty / error states per screen as they land.
 - Every data provider opts out of Riverpod 3's automatic retry (`noRetry` in
   `core/providers/core_providers.dart`). Riverpod 3 retries a failed provider ten times with a
@@ -97,7 +99,7 @@ Keep this list current — one line per FigCraft screen.
   `CertificatVerification` carries `valide`, `date` and `centre` only. Either the contract owner
   adds it or the row is dropped.
 - 08 · `?state=valid|invalid|not-found|unavailable` is a demo control that prefills the number
-  of the frame and short-circuits the lookup; Part 5 folds it into the shared `MockScenario`.
+  of the frame and short-circuits the lookup.
 - Replace the mock repository bindings with the Gateway client when the backend is ready.
 - C1 · The contract records reception when the visit is created (`POST /dons`), which is
   `VisitRepository.start`. A walk-in that is already sitting at `ACCUEIL` is completed by the
@@ -122,8 +124,51 @@ Keep this list current — one line per FigCraft screen.
   slot per `CreneauRequest`, so a run is several requests. The mock merges them into its
   in-memory day so the table and the summary update.
 - C1–C5 · `?state=quiet|empty|unavailable|unknown|wrong-step|rest-not-finished|overlap|
-  invalid-capacity` are demo controls; Part 5 folds them into the shared `MockScenario`.
+  invalid-capacity` are demo controls.
 - `TypeCentre` in `donneurs.yaml` (`CNTS`, `CRTS`, `BANQUE_HOPITAL`, `CLINIQUE_SANS_STOCK`,
   `COLLECTE_MOBILE`) does not match the app's `CentreKind` (`CENTRE_PERMANENT`,
   `BANQUE_HOSPITALIERE`, `COLLECTE_MOBILE`) used by `fixtures/centres.json`. Reconcile before
   the centres are wired to the real API.
+
+## Hospital and admin follow-ups (Parts 3–5)
+
+- H1 · The frame prints `P-2026-0442`, but `patientRef` is constrained to `^[A-Za-z0-9]+$`
+  (no dash), so the form opens on `P20260442` and the helper explains the anonymous reference.
+  A server 400 still maps `quantitePoches` back to the units field.
+- H1 · The pink Critical note is shown when Critical is selected. The frame also draws it while
+  High is selected, which contradicts its own copy; the app follows the rule (R15).
+- H1 · Compensation is not part of the frame's form, so a request created here sends no
+  `compensationDemandee` (R17 is optional). The seeded requests still show the 2-of-3 flow on H3.
+- H1 · The side note reads all three stock snapshots (This hospital, CRTS Sfax, CNTS national)
+  to say who will supply. The create answer still comes from the service (201 satisfied, 202
+  supplying / shortage), as the contract table requires.
+- H2 · The frame's "Reserved" filter has no matching `StatutDemande`. It maps to `SATISFAITE`
+  + delivery stage `Reserved`; no seeded request is at that stage, so the filter shows the
+  empty state. Ask the contract owner for a reservation status instead of inventing one.
+- H2 · The four figures are service-level summaries (`RequestSummary`), not sums of the visible
+  rows: the frame prints 2 in delivery while the visible table has one.
+- H3 · `suppliedBy`, ETA, tracking, delivery stage, reservation status and the certificate list
+  go beyond `Demande` in `demandes.yaml` (the contract carries `referenceApprovisionnement` and
+  the compensation counter). They are optional mock-only fields on the detail screen; keep them
+  as UI state until the service exposes them.
+- H3 · "Correct the number by hand" uses the real `PATCH /demandes/{id}` (`compensationRecue`)
+  shape. Adding a certificate uses `POST /demandes/{id}/compensations`; a repeated number is
+  the 409 of R26.
+- H4 · `belowThreshold` is computed from the levels (6 at This hospital). The frame prints 3
+  and marks five low cells, so the frame itself is inconsistent; the app shows the data truth.
+- H4 · `NiveauAlerte` names the height, not the danger: `HAUT` → "In stock", `MOYEN` → "Near",
+  `BAS` → "Low". Low keeps the reserved red; near uses amber.
+- A1 · There is no contract endpoint for updating an alert threshold. `saveThresholds` changes
+  the in-memory rules and appends the audit line; the screen can swap to the endpoint once the
+  contract adds it.
+- A1 · All 24 rules are editable. The table orders them by last change, so the eight changed
+  rows (the frame's eight) are first and the never-changed rows follow. Current values come from
+  `stock.json`, so they cannot match the frame's invented 12 / 5 / 18 figures and stay
+  consistent with H4.
+- A1 · The frame's rail shows the hospital items while the role is Admin. The app keeps the
+  admin rail (`Thresholds · Stock`); `/admin/stock` reuses H4 under the admin shell.
+- H1–A1 · Demo controls: `?state=shortage|invalid|unavailable` (H1), `empty|unavailable` (H2),
+  `not-found|unavailable` on the detail id (H3), `unavailable` (H4, A1).
+- H4 · The shared `shared/widgets/stock_cell.dart` remains the donor stock cell; the denser
+  8 × 3 board and its semantics live in
+  `features/hospital/presentation/widgets/stock_board.dart`.
