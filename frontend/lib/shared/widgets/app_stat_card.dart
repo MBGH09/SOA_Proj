@@ -17,6 +17,8 @@ class AppStatCard extends StatelessWidget {
     this.caption,
     this.tone = AppStatTone.neutral,
     this.icon,
+    this.background,
+    this.bordered = true,
   });
 
   final String label;
@@ -25,6 +27,10 @@ class AppStatCard extends StatelessWidget {
   final String? caption;
   final AppStatTone tone;
   final IconData? icon;
+
+  /// A beige tile on the H2 summary row, a white card elsewhere.
+  final Color? background;
+  final bool bordered;
 
   Color get _valueColor => switch (tone) {
     AppStatTone.neutral => AppColors.onSurface,
@@ -38,6 +44,8 @@ class AppStatCard extends StatelessWidget {
     final text = AppTypography.textTheme;
 
     return AppCard(
+      background: background,
+      bordered: bordered,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
