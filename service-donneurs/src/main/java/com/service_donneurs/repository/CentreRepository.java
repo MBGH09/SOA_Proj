@@ -1,6 +1,9 @@
 package com.service_donneurs.repository;
 
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public class CentreRepository {
-    
+import com.service_donneurs.model.Centre;
+
+public interface CentreRepository
+        extends JpaRepository<Centre, Long> {
 }

@@ -27,5 +27,39 @@ public class Ajournement {
     public Ajournement() {
     }
 
-    // Generate Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public Donneur getDonneur() {
+        return donneur;
+    }
+
+    public void setDonneur(Donneur donneur) {
+        this.donneur = donneur;
+    }
+
+    public String getMotif() {
+        return motif;
+    }
+
+    public void setMotif(String motif) {
+        this.motif = motif;
+    }
+
+    public LocalDate getDateDebut() {
+        return dateDebut;
+    }
+
+    public void setDateDebut(LocalDate dateDebut) {
+        this.dateDebut = dateDebut;
+    }
+
+    public LocalDate getDateFin() {
+        return dateFin;
+    }
+
+    public void setDateFin(LocalDate dateFin) {
+        this.dateFin = dateFin;
+    }
 }
