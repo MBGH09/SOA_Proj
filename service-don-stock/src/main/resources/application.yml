@@ -1,0 +1,30 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  grpc:
+    server:
+      port: ${GRPC_PORT:9090}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5436/stock}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  flyway:
+    enabled: false
+
+stock:
+  soap-timeout-ms: ${SOAP_TIMEOUT_MS:3000}
+  retry-jobs-interval-sec: ${RETRY_JOBS_INTERVAL_SEC:60}
+  delai-qualification-sec: ${DELAI_QUALIFICATION_SEC:20}
+  delai-livraison-sec: ${DELAI_LIVRAISON_SEC:30}
+  cnts-url: ${CNTS_URL:http://service-cnts:8084/ws}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

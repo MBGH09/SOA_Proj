@@ -1,0 +1,243 @@
+syntax = "proto3";
+
+package donstock.v1;
+
+// Java package must match the imports used throughout service-don-stock.
+option java_package = "tn.iit.blood.donstock.v1";
+option java_multiple_files = true;
+
+// =============================================================
+// Enums
+// =============================================================
+
+// 8 ABO/Rh blood groups.  UNSPECIFIED = 0 is the proto3 default.
+enum GroupeSanguin {
+  GROUPE_SANGUIN_UNSPECIFIED = 0;
+  A_POS  = 1;
+  A_NEG  = 2;
+  B_POS  = 3;
+  B_NEG  = 4;
+  AB_POS = 5;
+  AB_NEG = 6;
+  O_POS  = 7;
+  O_NEG  = 8;
+}
+
+// Blood component extracted from a donation.
+enum Composant {
+  COMPOSANT_UNSPECIFIED = 0;
+  CGR        = 1;   // Concentré de Globules Rouges
+  PLASMA     = 2;
+  PLAQUETTES = 3;
+}
+
+// Clinical urgency of a hospital request.
+enum Urgence {
+  URGENCE_UNSPECIFIED = 0;
+  NORMALE  = 1;
+  HAUTE    = 2;
+  CRITIQUE = 3;
+}
+
+// Lifecycle state of a blood-unit reservation.
+// demande_id is the idempotency key (see VerifierEtReserverRequest).
+// Gap 4 adds LIVREE and EN_ATTENTE_CONFIRMATION.
+enum StatutReservation {
+  STATUT_RESERVATION_UNSPECIFIED    = 0;
+  RESERVEE_STOCK_LOCAL              = 1;  // local bank had enough stock
+  APPROVISIONNEMENT_COMMANDE        = 2;  // central order placed via CNTS SOAP
+  STOCK_INSUFFISANT_PARTOUT         = 3;  // neither local nor central could supply
+  LIVREE                            = 4;  // delivery simulator confirmed arrival
+  EN_ATTENTE_CONFIRMATION           = 5;  // SOAP not reachable, stored as A_CONFIRMER
+}
+
+// Safety level derived from seuil_alerte (configurable threshold).
+enum Niveau {
+  NIVEAU_UNSPECIFIED = 0;
+  BAS    = 1;  // disponible <= seuil_alerte
+  MOYEN  = 2;  // disponible <= 2 * seuil_alerte
+  HAUT   = 3;  // disponible >  2 * seuil_alerte
+}
+
+// =============================================================
+// Service
+// =============================================================
+
+service DonStockService {
+
+  // Verifies local stock and either reserves locally or triggers a CNTS SOAP
+  // order (central path).  Idempotency key: demande_id.
+  // Errors: INVALID_ARGUMENT (bad params), NOT_FOUND (unknown lieu_id),
+  //         UNAVAILABLE (CNTS down, order stored as A_CONFIRMER).
+  rpc VerifierEtReserver (VerifierEtReserverRequest)
+      returns (VerifierEtReserverResponse);
+
+  // Returns the stored answer for a previous VerifierEtReserver call.
+  // Errors: NOT_FOUND (unknown demande_id).
+  // Used by service-demandes reconciliation job.
+  rpc ConsulterReservation (ConsulterReservationRequest)
+      returns (ConsulterReservationResponse);
+
+  // Declares a collected blood pouch to CNTS via SOAP.
+  // Idempotency key: don_id — a repeated call returns the same national number.
+  // Errors: INVALID_ARGUMENT (volume != 450, unknown group), UNAVAILABLE (CNTS down).
+  rpc EnregistrerPrelevement (EnregistrerPrelevementRequest)
+      returns (EnregistrerPrelevementResponse);
+
+  // Requests a donation certificate from CNTS for a qualified pouch.
+  // Idempotency key: don_id.
+  // Errors: NOT_FOUND (unknown don_id), FAILED_PRECONDITION (no national number yet),
+  //         UNAVAILABLE (CNTS down).
+  rpc DelivrerCertificat (DelivrerCertificatRequest)
+      returns (DelivrerCertificatResponse);
+
+  // Server-streaming RPC: sends a full snapshot on subscription, then one
+  // NiveauStockMessage per stock change committed to the database.
+  // Optional filters: lieu_id and groupe_sanguin.
+  // Errors: INVALID_ARGUMENT (malformed filters).
+  rpc SuivreNiveauxStock (SuivreNiveauxStockRequest)
+      returns (stream NiveauStockMessage);
+}
+
+// =============================================================
+// Messages – VerifierEtReserver
+// =============================================================
+
+message VerifierEtReserverRequest {
+  // Idempotency key: the hospital request id from service-demandes.
+  string demande_id    = 1;
+
+  // Target place (hospital bank or clinic).  Must exist in lieu table.
+  string lieu_id       = 2;
+
+  // Required blood group.
+  GroupeSanguin groupe_sanguin = 3;
+
+  // Required blood component.
+  Composant composant  = 4;
+
+  // Number of pouches requested.  Must be >= 1.
+  int32  quantite      = 5;
+
+  // Clinical urgency — influences CNTS delivery priority.
+  Urgence urgence      = 6;
+}
+
+message VerifierEtReserverResponse {
+  // Final or provisional status of the reservation.
+  StatutReservation statut       = 1;
+
+  // CNTS reference number (filled when APPROVISIONNEMENT_COMMANDE).
+  string            reference    = 2;
+
+  // Name of the supplying centre (filled when APPROVISIONNEMENT_COMMANDE).
+  string            centre_source = 3;
+
+  // Estimated delivery time in minutes (filled when APPROVISIONNEMENT_COMMANDE).
+  int32             eta_minutes  = 4;
+}
+
+// =============================================================
+// Messages – ConsulterReservation
+// =============================================================
+
+message ConsulterReservationRequest {
+  // Idempotency key used in the original VerifierEtReserver call.
+  string demande_id = 1;
+}
+
+message ConsulterReservationResponse {
+  string            demande_id   = 1;
+  StatutReservation statut       = 2;
+  string            reference    = 3;
+  string            centre_source = 4;
+  int32             eta_minutes  = 5;
+}
+
+// =============================================================
+// Messages – EnregistrerPrelevement
+// =============================================================
+
+message EnregistrerPrelevementRequest {
+  // Idempotency key: local donation id from service-donneurs.
+  string don_id          = 1;
+
+  // Internal donor reference (no health data, only the donor id).
+  string donneur_id      = 2;
+
+  // The collecting centre id.
+  string centre_id       = 3;
+
+  // Blood group determined for this collection.
+  GroupeSanguin groupe_sanguin = 4;
+
+  // Must equal VOLUME_PRELEVEMENT_ML (450 ml).
+  int32  volume_ml       = 5;
+
+  // ISO-8601 date string of the collection.
+  string date_prelevement = 6;
+}
+
+message EnregistrerPrelevementResponse {
+  // CNTS-issued national donation number (filled on success).
+  string numero_don_national = 1;
+
+  // Processing status: QUALIFICATION_EN_COURS, QUALIFIE, A_DECLARER …
+  string statut              = 2;
+}
+
+// =============================================================
+// Messages – DelivrerCertificat
+// =============================================================
+
+message DelivrerCertificatRequest {
+  // Idempotency key: local donation id.
+  string don_id               = 1;
+
+  // CNTS national donation number (must be non-blank).
+  string numero_don_national  = 2;
+
+  // Donor reference sent to CNTS (donor id only, never name or health data).
+  string donneur_ref          = 3;
+
+  // The collecting centre id.
+  string centre_id            = 4;
+
+  // ISO-8601 date of the donation.
+  string date_don             = 5;
+}
+
+message DelivrerCertificatResponse {
+  // CNTS-issued unique certificate number.
+  string numero_certificat = 1;
+
+  // ISO-8601 date the certificate was issued.
+  string date_emission     = 2;
+
+  // Status of the certificate: VALIDE or REFUSE.
+  string statut            = 3;
+}
+
+// =============================================================
+// Messages – SuivreNiveauxStock
+// =============================================================
+
+message SuivreNiveauxStockRequest {
+  // Optional: restrict the stream to one place.
+  string        lieu_id        = 1;
+
+  // Optional: restrict the stream to one blood group (UNSPECIFIED = no filter).
+  GroupeSanguin groupe_sanguin = 2;
+}
+
+// One message per (lieu, groupe_sanguin, composant) row that changed.
+message NiveauStockMessage {
+  string        lieu_id       = 1;
+  string        lieu_nom      = 2;
+  GroupeSanguin groupe_sanguin = 3;
+  Composant     composant     = 4;
+  int32         disponible    = 5;
+  int32         reserve       = 6;
+  int32         en_transit    = 7;
+  Niveau        niveau        = 8;
+}

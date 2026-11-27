@@ -5,7 +5,8 @@ import com.service_donneurs.dto.DonneurResponse;
 import com.service_donneurs.model.Donneur;
 import com.service_donneurs.repository.DonneurRepository;
 import org.springframework.stereotype.Service;
-
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 @Service
@@ -28,23 +29,43 @@ public class DonneurService {
                 .orElseThrow(() -> new RuntimeException("Donneur introuvable")));
     }
 
-    public DonneurResponse create(DonneurRequest request) {
+public DonneurResponse create(DonneurRequest request) {
 
-        Donneur donneur = new Donneur();
+    if (request == null
+            || request.cin() == null
+            || !request.cin().matches("\\d{8}")
+            || request.nom() == null
+            || request.nom().isBlank()
+            || request.prenom() == null
+            || request.prenom().isBlank()) {
 
-        donneur.setCin(request.cin());
-        donneur.setNom(request.nom());
-        donneur.setPrenom(request.prenom());
-        donneur.setDateNaissance(request.dateNaissance());
-        donneur.setPoidsKg(request.poidsKg());
-        donneur.setGroupeSanguin(request.groupeSanguin());
-        donneur.setVille(request.ville());
-        donneur.setTelephone(request.telephone());
-        donneur.setPremierDon(request.premierDon());
-
-        return toResponse(donneurRepository.save(donneur));
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Donneur invalide");
     }
 
+    if (donneurRepository.findByCin(request.cin()).isPresent()) {
+
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "CIN déjà existant");
+    }
+
+    Donneur donneur = new Donneur();
+
+    donneur.setCin(request.cin());
+    donneur.setNom(request.nom());
+    donneur.setPrenom(request.prenom());
+    donneur.setDateNaissance(request.dateNaissance());
+    donneur.setPoidsKg(request.poidsKg());
+    donneur.setGroupeSanguin(request.groupeSanguin());
+    donneur.setVille(request.ville());
+    donneur.setTelephone(request.telephone());
+    donneur.setPremierDon(request.premierDon());
+
+    return toResponse(
+            donneurRepository.save(donneur));
+}
     public DonneurResponse update(Long id, DonneurRequest request) {
 
         Donneur donneur = donneurRepository.findById(id)
@@ -76,4 +97,5 @@ public class DonneurService {
                 donneur.getTelephone(),
                 donneur.getPremierDon());
     }
+
 }

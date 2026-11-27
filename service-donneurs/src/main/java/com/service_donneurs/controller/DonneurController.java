@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/donneurs")
+@RequestMapping({"/api/v1/donneurs", "/api/donneurs"})
 public class DonneurController {
 
     private final DonneurService donneurService;
@@ -48,4 +48,6 @@ public class DonneurController {
 
         donneurService.delete(id);
     }
+
+  
 }
