@@ -33,7 +33,11 @@ void main() {
     );
     expect(
       AppFormatters.ageFrom(now.subtract(const Duration(days: 2)), now),
-      '2 d ago',
+      '2 days ago',
+    );
+    expect(
+      AppFormatters.ageFrom(now.subtract(const Duration(days: 1)), now),
+      'Yesterday',
     );
   });
 }
