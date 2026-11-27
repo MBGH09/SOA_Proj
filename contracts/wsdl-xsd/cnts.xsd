@@ -55,7 +55,10 @@
             <xs:sequence>
                 <!-- Identifiant local du don dans service-donneurs (clé d'idempotence) -->
                 <xs:element name="donIdLocal"      type="xs:string"/>
-                <xs:element name="groupeSanguin"   type="tns:GroupeSanguin"/>
+                <!-- xs:string ici (pas l'enum) pour que les valeurs inconnues atteignent
+                     PrelevementService et remontent via PrelevementInvalideFault (R10).
+                     L'enum GroupeSanguin reste défini ci-dessus comme documentation. -->
+                <xs:element name="groupeSanguin"   type="xs:string"/>
                 <!-- Doit être égal à VOLUME_PRELEVEMENT_ML (450). Fault sinon. -->
                 <xs:element name="volumeMl"        type="xs:int"/>
                 <xs:element name="centreId"        type="xs:string"/>
@@ -101,8 +104,8 @@
                 <xs:element name="hopitalId"     type="xs:string"/>
                 <!-- Région pour choisir le CRTS (ex: SFAX, TUNIS, SOUSSE) -->
                 <xs:element name="region"        type="xs:string"/>
-                <xs:element name="groupeSanguin" type="tns:GroupeSanguin"/>
-                <xs:element name="composant"     type="tns:Composant"/>
+                <xs:element name="groupeSanguin" type="xs:string"/>
+                <xs:element name="composant"     type="xs:string"/>
                 <!-- Quantité en nombre de poches (minimum 1) -->
                 <xs:element name="quantite"      type="xs:int"/>
                 <xs:element name="urgence"       type="tns:Urgence"/>
