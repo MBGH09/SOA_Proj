@@ -1,6 +1,7 @@
 package com.service_demandes.service;
 
 import com.service_demandes.client.DonStockClient;
+import com.service_demandes.config.DemandesRulesProperties;
 import com.service_demandes.client.DonStockIndisponibleException;
 import com.service_demandes.client.ReservationCommande;
 import com.service_demandes.client.ReservationResultat;
@@ -33,15 +34,24 @@ public class DemandeService {
     private final DemandeRepository demandes;
     private final DonStockClient donStock;
     private final TransactionTemplate transaction;
+    private final DemandesRulesProperties rules;
     private final Set<UUID> reservationsEnCours = ConcurrentHashMap.newKeySet();
 
-    public DemandeService(DemandeRepository demandes, DonStockClient donStock, TransactionTemplate transaction) {
+    public DemandeService(DemandeRepository demandes, DonStockClient donStock, TransactionTemplate transaction,
+                          DemandesRulesProperties rules) {
         this.demandes = demandes;
         this.donStock = donStock;
         this.transaction = transaction;
+        this.rules = rules;
     }
 
     public Demande creer(CreateDemandeRequest requete) {
+        Integer compensation = requete.compensationDemandee();
+        if (compensation != null
+                && (compensation < rules.getCompensationMin() || compensation > rules.getCompensationMax())) {
+            throw new RequeteInvalideException("La compensation demandée doit être entre "
+                    + rules.getCompensationMin() + " et " + rules.getCompensationMax());
+        }
         // 1re transaction : la demande existe en base avant tout appel reseau
         Demande enAttente = transaction.execute(status -> demandes.save(Demande.builder()
                 .hopitalId(requete.hopitalId())

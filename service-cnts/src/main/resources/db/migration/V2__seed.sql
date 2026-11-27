@@ -10,32 +10,32 @@
 -- ---------------------------------------------------------------------------
 INSERT INTO stock_central (centre_id, groupe_sanguin, composant, quantite) VALUES
 -- CGR (Concentré de Globules Rouges) — conforme XSD
-('CNTS-TN', 'A_POS',  'CGR', 150),
-('CNTS-TN', 'A_NEG',  'CGR',  40),
-('CNTS-TN', 'B_POS',  'CGR',  90),
-('CNTS-TN', 'B_NEG',  'CGR',  25),
-('CNTS-TN', 'AB_POS', 'CGR',  35),
-('CNTS-TN', 'AB_NEG', 'CGR',  10),
-('CNTS-TN', 'O_POS',  'CGR', 200),
-('CNTS-TN', 'O_NEG',  'CGR',   5),  -- Bas pour démo D5
+('CNTS-TUNIS', 'A_POS',  'CGR', 150),
+('CNTS-TUNIS', 'A_NEG',  'CGR',  40),
+('CNTS-TUNIS', 'B_POS',  'CGR',  90),
+('CNTS-TUNIS', 'B_NEG',  'CGR',  25),
+('CNTS-TUNIS', 'AB_POS', 'CGR',  35),
+('CNTS-TUNIS', 'AB_NEG', 'CGR',  10),
+('CNTS-TUNIS', 'O_POS',  'CGR', 200),
+('CNTS-TUNIS', 'O_NEG',  'CGR',   5),  -- Bas pour démo D5
 -- PLASMA
-('CNTS-TN', 'A_POS',  'PLASMA',  80),
-('CNTS-TN', 'A_NEG',  'PLASMA',  20),
-('CNTS-TN', 'B_POS',  'PLASMA',  50),
-('CNTS-TN', 'B_NEG',  'PLASMA',  12),
-('CNTS-TN', 'AB_POS', 'PLASMA',  18),
-('CNTS-TN', 'AB_NEG', 'PLASMA',   5),
-('CNTS-TN', 'O_POS',  'PLASMA', 100),
-('CNTS-TN', 'O_NEG',  'PLASMA',   3),  -- Bas pour démo D5
+('CNTS-TUNIS', 'A_POS',  'PLASMA',  80),
+('CNTS-TUNIS', 'A_NEG',  'PLASMA',  20),
+('CNTS-TUNIS', 'B_POS',  'PLASMA',  50),
+('CNTS-TUNIS', 'B_NEG',  'PLASMA',  12),
+('CNTS-TUNIS', 'AB_POS', 'PLASMA',  18),
+('CNTS-TUNIS', 'AB_NEG', 'PLASMA',   5),
+('CNTS-TUNIS', 'O_POS',  'PLASMA', 100),
+('CNTS-TUNIS', 'O_NEG',  'PLASMA',   3),  -- Bas pour démo D5
 -- PLAQUETTES
-('CNTS-TN', 'A_POS',  'PLAQUETTES',  60),
-('CNTS-TN', 'A_NEG',  'PLAQUETTES',  15),
-('CNTS-TN', 'B_POS',  'PLAQUETTES',  35),
-('CNTS-TN', 'B_NEG',  'PLAQUETTES',   8),
-('CNTS-TN', 'AB_POS', 'PLAQUETTES',  12),
-('CNTS-TN', 'AB_NEG', 'PLAQUETTES',   3),
-('CNTS-TN', 'O_POS',  'PLAQUETTES',  80),
-('CNTS-TN', 'O_NEG',  'PLAQUETTES',   2)   -- Bas pour démo D5
+('CNTS-TUNIS', 'A_POS',  'PLAQUETTES',  60),
+('CNTS-TUNIS', 'A_NEG',  'PLAQUETTES',  15),
+('CNTS-TUNIS', 'B_POS',  'PLAQUETTES',  35),
+('CNTS-TUNIS', 'B_NEG',  'PLAQUETTES',   8),
+('CNTS-TUNIS', 'AB_POS', 'PLAQUETTES',  12),
+('CNTS-TUNIS', 'AB_NEG', 'PLAQUETTES',   3),
+('CNTS-TUNIS', 'O_POS',  'PLAQUETTES',  80),
+('CNTS-TUNIS', 'O_NEG',  'PLAQUETTES',   2)   -- Bas pour démo D5
 ON CONFLICT (centre_id, groupe_sanguin, composant) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -43,32 +43,32 @@ ON CONFLICT (centre_id, groupe_sanguin, composant) DO NOTHING;
 -- ---------------------------------------------------------------------------
 INSERT INTO stock_central (centre_id, groupe_sanguin, composant, quantite) VALUES
 -- CGR
-('CRTS-SFX', 'A_POS',  'CGR',  60),
-('CRTS-SFX', 'A_NEG',  'CGR',  15),
-('CRTS-SFX', 'B_POS',  'CGR',  40),
-('CRTS-SFX', 'B_NEG',  'CGR',   8),
-('CRTS-SFX', 'AB_POS', 'CGR',  12),
-('CRTS-SFX', 'AB_NEG', 'CGR',   3),
-('CRTS-SFX', 'O_POS',  'CGR',  80),
-('CRTS-SFX', 'O_NEG',  'CGR',   1),  -- Très bas → démo D5 : StockInsuffisant
+('CRTS-SFAX', 'A_POS',  'CGR',  60),
+('CRTS-SFAX', 'A_NEG',  'CGR',  15),
+('CRTS-SFAX', 'B_POS',  'CGR',  40),
+('CRTS-SFAX', 'B_NEG',  'CGR',   8),
+('CRTS-SFAX', 'AB_POS', 'CGR',  12),
+('CRTS-SFAX', 'AB_NEG', 'CGR',   3),
+('CRTS-SFAX', 'O_POS',  'CGR',  80),
+('CRTS-SFAX', 'O_NEG',  'CGR',   1),  -- Très bas → démo D5 : StockInsuffisant
 -- PLASMA
-('CRTS-SFX', 'A_POS',  'PLASMA',  30),
-('CRTS-SFX', 'A_NEG',  'PLASMA',   8),
-('CRTS-SFX', 'B_POS',  'PLASMA',  20),
-('CRTS-SFX', 'B_NEG',  'PLASMA',   4),
-('CRTS-SFX', 'AB_POS', 'PLASMA',   6),
-('CRTS-SFX', 'AB_NEG', 'PLASMA',   1),
-('CRTS-SFX', 'O_POS',  'PLASMA',  40),
-('CRTS-SFX', 'O_NEG',  'PLASMA',   0),  -- Zéro → StockInsuffisant garanti
+('CRTS-SFAX', 'A_POS',  'PLASMA',  30),
+('CRTS-SFAX', 'A_NEG',  'PLASMA',   8),
+('CRTS-SFAX', 'B_POS',  'PLASMA',  20),
+('CRTS-SFAX', 'B_NEG',  'PLASMA',   4),
+('CRTS-SFAX', 'AB_POS', 'PLASMA',   6),
+('CRTS-SFAX', 'AB_NEG', 'PLASMA',   1),
+('CRTS-SFAX', 'O_POS',  'PLASMA',  40),
+('CRTS-SFAX', 'O_NEG',  'PLASMA',   0),  -- Zéro → StockInsuffisant garanti
 -- PLAQUETTES
-('CRTS-SFX', 'A_POS',  'PLAQUETTES',  20),
-('CRTS-SFX', 'A_NEG',  'PLAQUETTES',   5),
-('CRTS-SFX', 'B_POS',  'PLAQUETTES',  15),
-('CRTS-SFX', 'B_NEG',  'PLAQUETTES',   2),
-('CRTS-SFX', 'AB_POS', 'PLAQUETTES',   4),
-('CRTS-SFX', 'AB_NEG', 'PLAQUETTES',   1),
-('CRTS-SFX', 'O_POS',  'PLAQUETTES',  30),
-('CRTS-SFX', 'O_NEG',  'PLAQUETTES',   0)  -- Zéro → StockInsuffisant garanti
+('CRTS-SFAX', 'A_POS',  'PLAQUETTES',  20),
+('CRTS-SFAX', 'A_NEG',  'PLAQUETTES',   5),
+('CRTS-SFAX', 'B_POS',  'PLAQUETTES',  15),
+('CRTS-SFAX', 'B_NEG',  'PLAQUETTES',   2),
+('CRTS-SFAX', 'AB_POS', 'PLAQUETTES',   4),
+('CRTS-SFAX', 'AB_NEG', 'PLAQUETTES',   1),
+('CRTS-SFAX', 'O_POS',  'PLAQUETTES',  30),
+('CRTS-SFAX', 'O_NEG',  'PLAQUETTES',   0)  -- Zéro → StockInsuffisant garanti
 ON CONFLICT (centre_id, groupe_sanguin, composant) DO NOTHING;
 
 -- ---------------------------------------------------------------------------

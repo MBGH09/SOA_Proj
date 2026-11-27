@@ -4,7 +4,7 @@ Demandes de sang des hôpitaux, appels publics, compensation. Contrat : `../cont
 
 ## Lancer en local
 
-Il faut Java 17 et une base PostgreSQL vide nommée `demandes`.
+Il faut Java 21, Spring Boot 4.1.2 et une base PostgreSQL vide nommée `demandes`.
 
 ```bash
 export POSTGRES_USER=postgres
@@ -39,7 +39,9 @@ Flyway crée les tables au démarrage. Santé : <http://localhost:8082/actuator/
 ## Tests
 
 ```bash
-./mvnw verify
+mvn -B test
 ```
+
+GitHub Actions lance cette commande sans `-DskipTests`.
 
 Les tests utilisent H2 (mode PostgreSQL) avec la vraie migration Flyway : pas besoin de Docker ni de PostgreSQL.

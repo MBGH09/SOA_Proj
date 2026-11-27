@@ -5,17 +5,20 @@ import org.springframework.ws.server.endpoint.annotation.Endpoint;
 import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
 import org.springframework.ws.server.endpoint.annotation.RequestPayload;
 import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
+import tn.iit.blood.cnts.service.ApprovisionnementService;
 import tn.iit.blood.cnts.service.CertificatService;
 import tn.iit.blood.cnts.service.PrelevementService;
 import tn.iit.blood.cnts.ws.generated.DelivrerCertificatDonRequest;
 import tn.iit.blood.cnts.ws.generated.DelivrerCertificatDonResponse;
+import tn.iit.blood.cnts.ws.generated.DemanderApprovisionnementRequest;
+import tn.iit.blood.cnts.ws.generated.DemanderApprovisionnementResponse;
 import tn.iit.blood.cnts.ws.generated.EnregistrerPrelevementRequest;
 import tn.iit.blood.cnts.ws.generated.EnregistrerPrelevementResponse;
 
 /**
- * SOAP endpoint — S5-05.
- * Exposes: enregistrerPrelevement + delivrerCertificatDon.
- * demanderApprovisionnement is added in S5-06.
+ * SOAP endpoint.
+ * S5-05: enregistrerPrelevement, delivrerCertificatDon.
+ * S5-06: demanderApprovisionnement.
  */
 @Endpoint
 @RequiredArgsConstructor
@@ -25,6 +28,7 @@ public class CntsEndpoint {
 
     private final PrelevementService prelevementService;
     private final CertificatService  certificatService;
+    private final ApprovisionnementService approvisionnementService;
 
     /**
      * Operation 1 — enregistrerPrelevement (S5-05)
@@ -48,5 +52,17 @@ public class CntsEndpoint {
     public DelivrerCertificatDonResponse delivrerCertificatDon(
             @RequestPayload DelivrerCertificatDonRequest request) {
         return certificatService.delivrer(request);
+    }
+
+    /**
+     * Operation 2 — demanderApprovisionnement (S5-06, R14, R15, R18).
+     * Hospital order against central stock: regional CRTS first, then CNTS.
+     * The same demandeId returns the same reference.
+     */
+    @PayloadRoot(namespace = NAMESPACE, localPart = "demanderApprovisionnementRequest")
+    @ResponsePayload
+    public DemanderApprovisionnementResponse demanderApprovisionnement(
+            @RequestPayload DemanderApprovisionnementRequest request) {
+        return approvisionnementService.demander(request);
     }
 }

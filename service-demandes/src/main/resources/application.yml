@@ -1,0 +1,28 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5435/demandes}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  flyway:
+    enabled: false
+
+demandes:
+  compensation-min: ${COMPENSATION_MIN:2}
+  compensation-max: ${COMPENSATION_MAX:3}
+  grpc-deadline-ms: ${GRPC_DEADLINE_MS:2000}
+  retry-jobs-interval-sec: ${RETRY_JOBS_INTERVAL_SEC:60}
+  don-stock-grpc-target: ${DON_STOCK_GRPC_TARGET:static://service-don-stock:9090}
+  donneurs-url: ${DONNEURS_URL:http://service-donneurs:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

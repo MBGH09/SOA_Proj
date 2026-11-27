@@ -1,0 +1,143 @@
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.services }}
+      smoke: ${{ steps.filter.outputs.smoke }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        shell: bash
+        run: |
+          set -euo pipefail
+          services=(gateway service-donneurs service-demandes service-don-stock service-cnts)
+          emit() {
+            local json="{"
+            local sep=""
+            local service
+            for service in "${services[@]}"; do
+              json+="${sep}\"${service}\":${1}"
+              sep=","
+            done
+            json+="}"
+            echo "services=${json}" >> "$GITHUB_OUTPUT"
+            echo "smoke=${2}" >> "$GITHUB_OUTPUT"
+          }
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            emit true true
+            exit 0
+          fi
+          git cat-file -e "${{ github.event.pull_request.base.sha }}^{commit}" 2>/dev/null || git fetch --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          files="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD)"
+          printf '%s\n' "$files"
+          full=false
+          if printf '%s\n' "$files" | grep -Eq '^(docker-compose.*\.ya?ml|\.env\.example|\.github/|scripts/|tests-manuels/)'; then
+            full=true
+          fi
+          json="{"
+          sep=""
+          smoke=false
+          for service in "${services[@]}"; do
+            if [ "$full" = true ] || printf '%s\n' "$files" | grep -Eq "^(${service}/|contracts/)"; then
+              json+="${sep}\"${service}\":true"
+              smoke=true
+            else
+              json+="${sep}\"${service}\":false"
+            fi
+            sep=","
+          done
+          json+="}"
+          if [ "$full" = true ]; then
+            smoke=true
+          fi
+          echo "services=${json}" >> "$GITHUB_OUTPUT"
+          echo "smoke=${smoke}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: build ${{ matrix.service }}
+    needs: changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - service-donneurs
+          - service-demandes
+          - service-don-stock
+          - service-cnts
+    if: ${{ fromJSON(needs.changes.outputs.services)[matrix.service] }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: "**/pom.xml"
+      - run: mvn -f ${{ matrix.service }}/pom.xml -B -DskipTests package
+
+  test:
+    name: test ${{ matrix.service }}
+    needs: [changes, build]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - service-donneurs
+          - service-demandes
+          - service-don-stock
+          - service-cnts
+    if: ${{ needs.build.result == 'success' && fromJSON(needs.changes.outputs.services)[matrix.service] }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: "**/pom.xml"
+      - run: mvn -f ${{ matrix.service }}/pom.xml -B test
+
+  package:
+    name: package ${{ matrix.service }}
+    needs: [changes, test]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - service-donneurs
+          - service-demandes
+          - service-don-stock
+          - service-cnts
+    if: ${{ needs.test.result == 'success' && fromJSON(needs.changes.outputs.services)[matrix.service] }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f ${{ matrix.service }}/Dockerfile .
+
+  smoke:
+    name: smoke
+    needs: [changes, package]
+    if: ${{ always() && needs.changes.outputs.smoke == 'true' && needs.package.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/smoke.sh
+      - if: always()
+        run: docker compose down -v --remove-orphans
