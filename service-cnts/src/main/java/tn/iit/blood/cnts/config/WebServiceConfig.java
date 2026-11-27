@@ -18,6 +18,8 @@ import tn.iit.blood.cnts.ws.CntsSimulationInterceptor;
 
 import java.util.List;
 
+import java.util.List;
+
 /**
  * Configuration du serveur SOAP Spring-WS — S5-03 / S5-08.
  *
@@ -39,6 +41,10 @@ public class WebServiceConfig implements WsConfigurer {
      * S5-08 — PayloadValidatingInterceptor (XSD) enregistré en premier.
      * S5-09 — CntsSimulationInterceptor enregistré ensuite :
      *          la validation passe avant la simulation.
+    /**
+     * S5-08 — Enregistre le PayloadValidatingInterceptor pour toutes les opérations.
+     * Les requêtes malformées (groupe inconnu, champ manquant) sont rejetées ici
+     * avant d'atteindre CntsEndpoint.
      */
     @Override
     public void addInterceptors(List<EndpointInterceptor> interceptors) {
