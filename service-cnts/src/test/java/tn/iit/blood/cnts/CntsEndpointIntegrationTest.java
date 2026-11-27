@@ -313,57 +313,72 @@ class CntsEndpointIntegrationTest {
 
     // =========================================================================
     // S5-09 — Simulation interceptor
-    // These tests re-create the application context with specific simulation
-    // properties to verify that:
-    //   1. fail-rate=1.0 → Server-Fault is returned, endpoint is NOT called
-    //   2. latency-ms=10 → request still dispatches successfully (happy path)
+    // Uses @Nested + @TestPropertySource at class level (correct Spring usage).
+    // @TestPropertySource on a @Test method has no effect in Spring Boot Test.
     // =========================================================================
 
     /**
-     * When cnts.fail-rate=1.0 (100 % failure), every request must receive a
-     * Server-Fault before reaching the endpoint.
-     * The fault is injected by CntsSimulationInterceptor.handleRequest().
+     * fail-rate=1.0 : every request must receive a Server-Fault.
+     * The fault is injected by CntsSimulationInterceptor before reaching the endpoint.
      */
-    @Test
+    @org.junit.jupiter.api.Nested
+    @SpringBootTest
+    @ActiveProfiles("h2")
     @org.springframework.test.context.TestPropertySource(properties = {
             "cnts.fail-rate=1.0",
             "cnts.latency-ms=0"
     })
-    void simulation_failRateOne_returnsServerFault() {
-        mockClient().sendRequest(RequestCreators.withPayload(new StringSource("""
-                <tns:enregistrerPrelevementRequest xmlns:tns="%s">
-                    <tns:donIdLocal>DON-SIM-FAULT</tns:donIdLocal>
-                    <tns:groupeSanguin>O_POS</tns:groupeSanguin>
-                    <tns:volumeMl>450</tns:volumeMl>
-                    <tns:centreId>CRTS-SFAX</tns:centreId>
-                    <tns:datePrelevement>2026-11-01</tns:datePrelevement>
-                </tns:enregistrerPrelevementRequest>
-                """.formatted(NS))))
-            .andExpect(ResponseMatchers.serverOrReceiverFault());
+    class SimulationFailRateTests {
+
+        @Autowired
+        private ApplicationContext applicationContext;
+
+        @Test
+        void simulation_failRateOne_returnsServerFault() {
+            MockWebServiceClient.createClient(applicationContext)
+                .sendRequest(RequestCreators.withPayload(new StringSource("""
+                        <tns:enregistrerPrelevementRequest xmlns:tns="%s">
+                            <tns:donIdLocal>DON-SIM-FAULT</tns:donIdLocal>
+                            <tns:groupeSanguin>O_POS</tns:groupeSanguin>
+                            <tns:volumeMl>450</tns:volumeMl>
+                            <tns:centreId>CRTS-SFAX</tns:centreId>
+                            <tns:datePrelevement>2026-11-01</tns:datePrelevement>
+                        </tns:enregistrerPrelevementRequest>
+                        """.formatted("http://iit.tn/soa/cnts"))))
+                .andExpect(ResponseMatchers.serverOrReceiverFault());
+        }
     }
 
     /**
-     * When cnts.latency-ms=10 (small artificial delay), the request must still
-     * dispatch successfully and return a valid response (no fault).
-     * This verifies the latency path does not break normal operation.
+     * latency-ms=10 : artificial delay must not break normal dispatching.
      */
-    @Test
+    @org.junit.jupiter.api.Nested
+    @SpringBootTest
+    @ActiveProfiles("h2")
     @org.springframework.test.context.TestPropertySource(properties = {
             "cnts.fail-rate=0.0",
             "cnts.latency-ms=10"
     })
-    void simulation_latencyEnabled_requestStillSucceeds() {
-        mockClient().sendRequest(RequestCreators.withPayload(new StringSource("""
-                <tns:enregistrerPrelevementRequest xmlns:tns="%s">
-                    <tns:donIdLocal>DON-SIM-LATENCY</tns:donIdLocal>
-                    <tns:groupeSanguin>A_POS</tns:groupeSanguin>
-                    <tns:volumeMl>450</tns:volumeMl>
-                    <tns:centreId>CRTS-SFAX</tns:centreId>
-                    <tns:datePrelevement>2026-11-01</tns:datePrelevement>
-                </tns:enregistrerPrelevementRequest>
-                """.formatted(NS))))
-            .andExpect(ResponseMatchers.noFault())
-            .andExpect(ResponseMatchers.xpath(
-                "//*[local-name()='statut'][text()='QUALIFICATION_EN_COURS']").exists());
+    class SimulationLatencyTests {
+
+        @Autowired
+        private ApplicationContext applicationContext;
+
+        @Test
+        void simulation_latencyEnabled_requestStillSucceeds() {
+            MockWebServiceClient.createClient(applicationContext)
+                .sendRequest(RequestCreators.withPayload(new StringSource("""
+                        <tns:enregistrerPrelevementRequest xmlns:tns="%s">
+                            <tns:donIdLocal>DON-SIM-LATENCY</tns:donIdLocal>
+                            <tns:groupeSanguin>A_POS</tns:groupeSanguin>
+                            <tns:volumeMl>450</tns:volumeMl>
+                            <tns:centreId>CRTS-SFAX</tns:centreId>
+                            <tns:datePrelevement>2026-11-01</tns:datePrelevement>
+                        </tns:enregistrerPrelevementRequest>
+                        """.formatted("http://iit.tn/soa/cnts"))))
+                .andExpect(ResponseMatchers.noFault())
+                .andExpect(ResponseMatchers.xpath(
+                    "//*[local-name()='statut'][text()='QUALIFICATION_EN_COURS']").exists());
+        }
     }
 }

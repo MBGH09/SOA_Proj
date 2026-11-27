@@ -45,6 +45,10 @@ public class PrelevementService {
                     "Volume invalide : attendu " + volumeAttenu + " ml, reçu " + req.getVolumeMl() + " ml");
         }
 
+        // R10 — groupeSanguin is a JAXB enum (tns:GroupeSanguin in XSD).
+        // .value() converts it to String. null-check guards against unmarshalling edge cases.
+        if (req.getGroupeSanguin() == null) {
+            throw new PrelevementInvalideException("Groupe sanguin inconnu ou invalide");
         // R10 — Blood group must be a known value.
         // groupeSanguin est maintenant xs:string dans le XSD (pas l'enum JAXB) pour
         // que les valeurs inconnues atteignent ce service et remontent via
@@ -54,6 +58,7 @@ public class PrelevementService {
             throw new PrelevementInvalideException(
                     "Groupe sanguin inconnu ou invalide : " + groupe);
         }
+        String groupe = req.getGroupeSanguin().value();
 
         // Date must not be in the future
         LocalDate datePrelev = req.getDatePrelevement().toGregorianCalendar().toZonedDateTime()
@@ -70,6 +75,7 @@ public class PrelevementService {
         PrelevementDeclare p = new PrelevementDeclare();
         p.setNumeroDonNational(numeroDonNational);
         p.setDonIdLocal(req.getDonIdLocal());
+        p.setGroupeSanguin(groupe);
         p.setGroupeSanguin(groupe);  // String direct — plus de .value()
         p.setVolumeMl(req.getVolumeMl());
         p.setCentreId(req.getCentreId());
@@ -80,8 +86,7 @@ public class PrelevementService {
             prelevementRepo.save(p);
             return toResponse(p);
         } catch (DataIntegrityViolationException e) {
-            // R18 — Concurrent duplicate insert: another thread inserted the same donIdLocal
-            // just before us. Reload and return the existing record instead of failing.
+            // R18 — Concurrent duplicate insert: reload the existing record
             return prelevementRepo.findByDonIdLocal(req.getDonIdLocal())
                     .map(this::toResponse)
                     .orElseThrow(() -> new PrelevementInvalideException("Erreur inattendue lors de l'enregistrement"));
