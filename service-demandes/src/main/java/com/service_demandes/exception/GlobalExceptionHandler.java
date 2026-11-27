@@ -1,6 +1,7 @@
 package com.service_demandes.exception;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.service_demandes.exception.ServiceIndisponibleException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.service_demandes.dto.ErreurApi;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,6 +74,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConflitMetierException.class)
     public ResponseEntity<ErreurApi> conflit(ConflitMetierException ex, HttpServletRequest requete) {
         return reponse(HttpStatus.CONFLICT, ex.getMessage(), requete);
+    }
+
+    /** Service aval injoignable (Donneurs down, Don & Stock down). */
+    @ExceptionHandler(ServiceIndisponibleException.class)
+    public ResponseEntity<ErreurApi> serviceIndisponible(ServiceIndisponibleException ex, HttpServletRequest requete) {
+        return reponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), requete);
     }
 
     /** Erreurs HTTP standard de Spring (404, 405, 415...) gardent leur code mais prennent notre format. */

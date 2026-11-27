@@ -4,12 +4,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Faux Don & Stock pour developper sans attendre l'Etudiant 4. Actif avec le profil "mock".
- * Le comportement se choisit avec donstock.mock.mode (LOCAL, COMMANDE, PENURIE ou INDISPONIBLE).
- * Le faux serveur gRPC complet de S6-03 le remplacera.
+ * Faux Don & Stock pour développer sans attendre l'Étudiant 4. Actif avec le profil {@code mock}.
+ * Mode configurable via {@code donstock.mock.mode} : LOCAL, COMMANDE, PENURIE, INDISPONIBLE.
+ * <p>En mode COMMANDE, {@link #consulterReservation(UUID)} répond LIVREE pour simuler
+ * l'arrivée de la livraison (utile pour tester le job de réconciliation).</p>
  */
 @Component
 @Profile("mock")
@@ -27,15 +29,26 @@ public class DonStockClientMock implements DonStockClient {
     public ReservationResultat verifierEtReserver(ReservationCommande commande) {
         String reference = "MOCK-" + commande.demandeId().toString().substring(0, 8);
         return switch (mode) {
-            case LOCAL -> new ReservationResultat(StatutReservation.RESERVEE_STOCK_LOCAL, reference, null, null);
-            case COMMANDE -> new ReservationResultat(StatutReservation.APPROVISIONNEMENT_COMMANDE, reference, "CRTS Sfax", 120);
-            case PENURIE -> new ReservationResultat(StatutReservation.STOCK_INSUFFISANT_PARTOUT, null, null, null);
+            case LOCAL       -> new ReservationResultat(StatutReservation.RESERVEE_STOCK_LOCAL, reference, null, null);
+            case COMMANDE    -> new ReservationResultat(StatutReservation.APPROVISIONNEMENT_COMMANDE, reference, "CRTS Sfax", 120);
+            case PENURIE     -> new ReservationResultat(StatutReservation.STOCK_INSUFFISANT_PARTOUT, null, null, null);
             case INDISPONIBLE -> throw new DonStockIndisponibleException("Don & Stock simulé indisponible");
         };
     }
 
     @Override
     public void libererReservation(UUID demandeId, String reference) {
-        // Le serveur gRPC simulé n'a pas d'etat persistant de reservation.
+        // Pas d'état persistant dans le mock.
+    }
+
+    @Override
+    public Optional<ConsultationResultat> consulterReservation(UUID demandeId) {
+        String demandeIdStr = demandeId.toString();
+        return switch (mode) {
+            case LOCAL       -> Optional.of(new ConsultationResultat(demandeIdStr, StatutReservation.RESERVEE_STOCK_LOCAL, "MOCK-REF", null, null));
+            case COMMANDE    -> Optional.of(new ConsultationResultat(demandeIdStr, StatutReservation.LIVREE, "MOCK-REF", "CRTS Sfax", 0));
+            case PENURIE     -> Optional.of(new ConsultationResultat(demandeIdStr, StatutReservation.STOCK_INSUFFISANT_PARTOUT, null, null, null));
+            case INDISPONIBLE -> throw new DonStockIndisponibleException("Don & Stock simulé indisponible");
+        };
     }
 }
