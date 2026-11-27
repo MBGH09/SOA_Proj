@@ -1,11 +1,12 @@
 package com.service_donneurs.service;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
+import com.service_donneurs.dto.DonneurRequest;
+import com.service_donneurs.dto.DonneurResponse;
 import com.service_donneurs.model.Donneur;
 import com.service_donneurs.repository.DonneurRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class DonneurService {
@@ -16,7 +17,63 @@ public class DonneurService {
         this.donneurRepository = donneurRepository;
     }
 
-    public List<Donneur> findAll() {
-        return donneurRepository.findAll();
+    public List<DonneurResponse> getAll() {
+        return donneurRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public DonneurResponse getById(Long id) {
+        return toResponse(donneurRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Donneur introuvable")));
+    }
+
+    public DonneurResponse create(DonneurRequest request) {
+
+        Donneur donneur = new Donneur();
+
+        donneur.setCin(request.cin());
+        donneur.setNom(request.nom());
+        donneur.setPrenom(request.prenom());
+        donneur.setDateNaissance(request.dateNaissance());
+        donneur.setPoidsKg(request.poidsKg());
+        donneur.setGroupeSanguin(request.groupeSanguin());
+        donneur.setVille(request.ville());
+        donneur.setTelephone(request.telephone());
+        donneur.setPremierDon(request.premierDon());
+
+        return toResponse(donneurRepository.save(donneur));
+    }
+
+    public DonneurResponse update(Long id, DonneurRequest request) {
+
+        Donneur donneur = donneurRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Donneur introuvable"));
+
+        donneur.setNom(request.nom());
+        donneur.setPrenom(request.prenom());
+        donneur.setPoidsKg(request.poidsKg());
+        donneur.setVille(request.ville());
+        donneur.setTelephone(request.telephone());
+
+        return toResponse(donneurRepository.save(donneur));
+    }
+
+    public void delete(Long id) {
+        donneurRepository.deleteById(id);
+    }
+
+    private DonneurResponse toResponse(Donneur donneur) {
+        return new DonneurResponse(
+                donneur.getId(),
+                donneur.getCin(),
+                donneur.getNom(),
+                donneur.getPrenom(),
+                donneur.getDateNaissance(),
+                donneur.getPoidsKg(),
+                donneur.getGroupeSanguin(),
+                donneur.getVille(),
+                donneur.getTelephone(),
+                donneur.getPremierDon());
     }
 }

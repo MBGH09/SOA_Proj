@@ -1,0 +1,543 @@
+openapi: 3.1.0
+
+info:
+  title: Service Donneurs API
+  version: 1.0.0
+  description: Gestion des donneurs, éligibilité, ajournements, rendez-vous, dons et certificats.
+
+servers:
+  - url: http://localhost:8081
+
+tags:
+  - name: Donneurs
+  - name: Eligibility
+  - name: Ajournements
+  - name: Centres
+  - name: Creneaux
+  - name: RendezVous
+  - name: Dons
+  - name: Certificats
+
+paths:
+
+  /api/donneurs:
+
+    get:
+      tags: [Donneurs]
+      summary: Liste des donneurs
+      operationId: getAllDonneurs
+
+      responses:
+        "200":
+          description: Liste des donneurs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Donneur"
+
+    post:
+      tags: [Donneurs]
+      summary: Créer un donneur
+      operationId: createDonneur
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonneurRequest"
+
+      responses:
+        "201":
+          description: Donneur créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donneur"
+
+  /api/donneurs/{id}:
+
+    get:
+      tags: [Donneurs]
+      summary: Rechercher un donneur par id
+      operationId: getDonneurById
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Donneur trouvé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donneur"
+
+        "404":
+          description: Donneur introuvable
+
+    put:
+      tags: [Donneurs]
+      summary: Modifier un donneur
+      operationId: updateDonneur
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonneurRequest"
+
+      responses:
+        "200":
+          description: Donneur modifié
+
+    delete:
+      tags: [Donneurs]
+      summary: Supprimer un donneur
+      operationId: deleteDonneur
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "204":
+          description: Donneur supprimé
+
+  /api/eligibility/{cin}:
+
+    get:
+      tags: [Eligibility]
+      summary: Vérifier l'éligibilité d'un donneur
+      operationId: verifierEligibilite
+
+      parameters:
+        - name: cin
+          in: path
+          required: true
+          schema:
+            type: string
+
+      responses:
+        "200":
+          description: Résultat de l'éligibilité
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EligibilityResponse"
+
+  /api/ajournements:
+
+    post:
+      tags: [Ajournements]
+      summary: Créer un ajournement
+      operationId: createAjournement
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AjournementRequest"
+
+      responses:
+        "201":
+          description: Ajournement créé
+
+  /api/donneurs/{id}/ajournements:
+
+    get:
+      tags: [Ajournements]
+      summary: Historique des ajournements d'un donneur
+      operationId: getAjournementsDonneur
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Historique des ajournements
+
+  /api/centres:
+
+    get:
+      tags: [Centres]
+      summary: Liste des centres
+      operationId: getCentres
+
+      responses:
+        "200":
+          description: Liste des centres
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Centre"
+
+  /api/centres/{id}:
+
+    get:
+      tags: [Centres]
+      summary: Détail d'un centre
+      operationId: getCentreById
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Centre trouvé
+
+  /api/creneaux:
+
+    get:
+      tags: [Creneaux]
+      summary: Liste des créneaux
+      operationId: getAllCreneaux
+
+      responses:
+        "200":
+          description: Liste des créneaux
+
+    post:
+      tags: [Creneaux]
+      summary: Créer un créneau
+      operationId: createCreneau
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreneauRequest"
+
+      responses:
+        "201":
+          description: Créneau créé
+
+  /api/rendez-vous:
+
+    post:
+      tags: [RendezVous]
+      summary: Réserver un rendez-vous
+      operationId: createRendezVous
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RendezVousRequest"
+
+      responses:
+        "201":
+          description: Rendez-vous créé
+
+  /api/rendez-vous/{id}:
+
+    get:
+      tags: [RendezVous]
+      summary: Consulter un rendez-vous
+      operationId: getRendezVous
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Rendez-vous trouvé
+
+  /api/rendez-vous/{id}/annuler:
+
+    put:
+      tags: [RendezVous]
+      summary: Annuler un rendez-vous
+      operationId: annulerRendezVous
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Rendez-vous annulé
+
+  /api/dons:
+
+    post:
+      tags: [Dons]
+      summary: Démarrer un don
+      operationId: createDon
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonRequest"
+
+      responses:
+        "201":
+          description: Don créé
+
+  /api/dons/{id}:
+
+    get:
+      tags: [Dons]
+      summary: Consulter un don
+      operationId: getDon
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Don trouvé
+
+  /api/dons/{id}/etapes:
+
+    get:
+      tags: [Dons]
+      summary: Historique des étapes du don
+      operationId: getEtapesDon
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Liste des étapes
+
+  /api/dons/{id}/synchroniser:
+
+    post:
+      tags: [Dons]
+      summary: Synchronisation nationale CNTS
+      operationId: synchroniserDon
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Synchronisation effectuée
+
+  /api/certificats/{donId}:
+
+    post:
+      tags: [Certificats]
+      summary: Générer un certificat de don
+      operationId: genererCertificat
+
+      parameters:
+        - name: donId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Certificat généré
+
+    get:
+      tags: [Certificats]
+      summary: Télécharger un certificat
+      operationId: getCertificat
+
+      parameters:
+        - name: donId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+
+      responses:
+        "200":
+          description: Fichier PDF
+
+components:
+
+  schemas:
+
+    Donneur:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        cin:
+          type: string
+        nom:
+          type: string
+        prenom:
+          type: string
+        dateNaissance:
+          type: string
+          format: date
+        poidsKg:
+          type: integer
+        groupeSanguin:
+          type: string
+        ville:
+          type: string
+        telephone:
+          type: string
+        premierDon:
+          type: boolean
+
+    DonneurRequest:
+      type: object
+      required:
+        - cin
+        - nom
+        - prenom
+        - dateNaissance
+        - poidsKg
+        - groupeSanguin
+
+      properties:
+        cin:
+          type: string
+        nom:
+          type: string
+        prenom:
+          type: string
+        dateNaissance:
+          type: string
+          format: date
+        poidsKg:
+          type: integer
+        groupeSanguin:
+          type: string
+        ville:
+          type: string
+        telephone:
+          type: string
+        premierDon:
+          type: boolean
+
+    EligibilityResponse:
+      type: object
+      properties:
+        eligible:
+          type: boolean
+        motif:
+          type: string
+
+    AjournementRequest:
+      type: object
+      properties:
+        donneurId:
+          type: integer
+        motif:
+          type: string
+        dateDebut:
+          type: string
+          format: date
+        dateFin:
+          type: string
+          format: date
+
+    Centre:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        type:
+          type: string
+        ville:
+          type: string
+
+    CreneauRequest:
+      type: object
+      properties:
+        centreId:
+          type: integer
+        debut:
+          type: string
+          format: date-time
+        fin:
+          type: string
+          format: date-time
+        capacite:
+          type: integer
+
+    RendezVousRequest:
+      type: object
+      properties:
+        donneurId:
+          type: integer
+        centreId:
+          type: integer
+        creneauId:
+          type: integer
+
+    DonRequest:
+      type: object
+      properties:
+        donneurId:
+          type: integer
+        centreId:
+          type: integer
+        rendezVousId:
+          type: integer
