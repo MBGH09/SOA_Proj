@@ -27,116 +27,156 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Gestion du cycle de vie des demandes de sang.
+ *
+ * <p>Pattern deux transactions pour chaque création :</p>
+ * <ol>
+ *   <li>Transaction 1 : persiste la demande en {@code EN_ATTENTE} avant tout appel réseau.</li>
+ *   <li>Appel gRPC {@code VerifierEtReserver} hors transaction (pas de verrou DB pendant le réseau).</li>
+ *   <li>Transaction 2 : met à jour le statut selon la réponse gRPC.</li>
+ * </ol>
+ *
+ * <p>Si Don & Stock est injoignable, la demande reste {@code EN_ATTENTE} et
+ * {@link ReconciliationJob} la reprend à intervalle régulier.</p>
+ */
 @Service
 public class DemandeService {
 
     private static final Logger log = LoggerFactory.getLogger(DemandeService.class);
 
-    private final DemandeRepository demandes;
-    private final DonStockClient donStock;
+    private final DemandeRepository demandeRepository;
+    private final DonStockClient donStockClient;
     private final AppelDonService appelDonService;
-    private final TransactionTemplate transaction;
-    private final DemandesRulesProperties rules;
+    private final TransactionTemplate transactionTemplate;
+    private final DemandesRulesProperties regles;
 
     /**
-     * Garde en mémoire les demandes dont la réservation gRPC est en vol.
-     * Permet de bloquer une annulation concurrente jusqu'à la fin de l'appel.
+     * Identifiants des demandes dont l'appel gRPC est actuellement en vol.
+     * Bloque toute annulation concurrente jusqu'à la fin de l'appel.
      */
     private final Set<UUID> reservationsEnCours = ConcurrentHashMap.newKeySet();
 
-    public DemandeService(DemandeRepository demandes,
-                          DonStockClient donStock,
+    public DemandeService(DemandeRepository demandeRepository,
+                          DonStockClient donStockClient,
                           AppelDonService appelDonService,
-                          TransactionTemplate transaction,
-                          DemandesRulesProperties rules) {
-        this.demandes = demandes;
-        this.donStock = donStock;
-        this.appelDonService = appelDonService;
-        this.transaction = transaction;
-        this.rules = rules;
+                          TransactionTemplate transactionTemplate,
+                          DemandesRulesProperties regles) {
+        this.demandeRepository = demandeRepository;
+        this.donStockClient     = donStockClient;
+        this.appelDonService    = appelDonService;
+        this.transactionTemplate = transactionTemplate;
+        this.regles              = regles;
     }
 
     // -------------------------------------------------------------------------
-    // S6-05 : Création d'une demande
+    // Création (POST /api/v1/demandes)
     // -------------------------------------------------------------------------
 
     /**
      * Crée une demande et tente immédiatement la réservation gRPC.
-     * <p>Deux transactions : (1) sauvegarde EN_ATTENTE, (2) applique le résultat.
-     * Aucune transaction n'est ouverte pendant l'appel réseau.</p>
+     * Retourne 201 si le sang est disponible localement, 202 dans tous les autres cas.
      */
-    public Demande creer(CreateDemandeRequest requete) {
-        validerCompensation(requete.compensationDemandee());
+    public Demande creer(CreateDemandeRequest corps) {
+        validerIntervalleCompensation(corps.compensationDemandee());
 
-        // --- Transaction 1 : la demande est commitée avant tout appel réseau ---
-        Demande enAttente = transaction.execute(tx -> demandes.save(Demande.builder()
-                .hopitalId(requete.hopitalId())
-                .hopitalNom(requete.hopitalNom())
-                .patientRef(requete.patientRef())
-                .motif(requete.motif())
-                .groupeSanguin(requete.groupeSanguin())
-                .composant(requete.composant())
-                .quantitePoches(requete.quantitePoches())
-                .urgence(requete.urgence())
-                .statut(StatutDemande.EN_ATTENTE)
-                .compensationDemandee(requete.compensationDemandee())
-                .build()));
+        Demande demandeEnAttente = persisterEnAttente(corps);
 
-        // --- Appel gRPC hors transaction ---
-        reservationsEnCours.add(enAttente.getId());
-        ReservationResultat resultat;
-        try {
-            resultat = donStock.verifierEtReserver(new ReservationCommande(
-                    enAttente.getId(),
-                    enAttente.getHopitalId(),
-                    enAttente.getGroupeSanguin(),
-                    enAttente.getComposant(),
-                    enAttente.getQuantitePoches(),
-                    enAttente.getUrgence()));
-        } catch (DonStockIndisponibleException e) {
-            log.warn("Don & Stock indisponible pour demande {} : {} — laissée EN_ATTENTE",
-                    enAttente.getId(), e.getMessage());
-            return enAttente;
-        } finally {
-            reservationsEnCours.remove(enAttente.getId());
+        ReservationResultat resultatReservation = tenterReservationGrpc(demandeEnAttente);
+        if (resultatReservation == null) {
+            return demandeEnAttente; // Don & Stock injoignable, le job reprend plus tard
         }
 
-        // --- Transaction 2 : mise à jour du statut ---
-        return transaction.execute(tx -> appliquerResultat(enAttente.getId(), resultat));
+        return transactionTemplate.execute(
+                ignoree -> appliquerResultatReservation(demandeEnAttente.getId(), resultatReservation));
+    }
+
+    private Demande persisterEnAttente(CreateDemandeRequest corps) {
+        return transactionTemplate.execute(ignoree -> demandeRepository.save(
+                Demande.builder()
+                        .hopitalId(corps.hopitalId())
+                        .hopitalNom(corps.hopitalNom())
+                        .patientRef(corps.patientRef())
+                        .motif(corps.motif())
+                        .groupeSanguin(corps.groupeSanguin())
+                        .composant(corps.composant())
+                        .quantitePoches(corps.quantitePoches())
+                        .urgence(corps.urgence())
+                        .statut(StatutDemande.EN_ATTENTE)
+                        .compensationDemandee(corps.compensationDemandee())
+                        .build()));
+    }
+
+    /**
+     * Appelle Don & Stock hors transaction. Retourne null si le service est injoignable.
+     */
+    private ReservationResultat tenterReservationGrpc(Demande demandeEnAttente) {
+        reservationsEnCours.add(demandeEnAttente.getId());
+        try {
+            return donStockClient.verifierEtReserver(construireCommandeReservation(demandeEnAttente));
+        } catch (DonStockIndisponibleException erreurReseau) {
+            log.warn("Don & Stock injoignable pour la demande {} — laissée EN_ATTENTE : {}",
+                    demandeEnAttente.getId(), erreurReseau.getMessage());
+            return null;
+        } finally {
+            reservationsEnCours.remove(demandeEnAttente.getId());
+        }
+    }
+
+    private ReservationCommande construireCommandeReservation(Demande demande) {
+        return new ReservationCommande(
+                demande.getId(),
+                demande.getHopitalId(),
+                demande.getGroupeSanguin(),
+                demande.getComposant(),
+                demande.getQuantitePoches(),
+                demande.getUrgence());
     }
 
     // -------------------------------------------------------------------------
-    // S6-06 : Applique le résultat gRPC → mapping statut + ouverture appel (S6-07)
+    // Application du résultat gRPC (appelé aussi par ReconciliationJob)
     // -------------------------------------------------------------------------
 
     /**
-     * Applique le résultat d'un {@code VerifierEtReserver} sur la demande.
-     * Doit être appelé dans une transaction active.
+     * Applique le résultat d'un {@code VerifierEtReserver} sur la demande persistée.
+     * Doit être appelé à l'intérieur d'une transaction active.
      */
-    Demande appliquerResultat(UUID id, ReservationResultat resultat) {
-        Demande demande = demandes.findByIdVerrouillee(id)
-                .orElseThrow(() -> new IllegalStateException("Demande disparue : " + id));
+    Demande appliquerResultatReservation(UUID demandeId, ReservationResultat resultat) {
+        Demande demande = demandeRepository.findByIdVerrouillee(demandeId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Demande introuvable pendant l'application du résultat : " + demandeId));
 
-        // Si la demande a été annulée pendant l'appel gRPC
         if (demande.getStatut() == StatutDemande.ANNULEE) {
-            if (resultat.statut() == StatutReservation.RESERVEE_STOCK_LOCAL) {
-                try {
-                    donStock.libererReservation(id, resultat.reference());
-                } catch (RuntimeException e) {
-                    log.warn("Impossible de libérer la réservation {} de la demande annulée {}", resultat.reference(), id, e);
-                }
-            }
-            log.info("Demande {} annulée pendant la réservation — résultat ignoré", id);
+            libererReservationSiNecessaire(demandeId, resultat);
+            log.info("Demande {} annulée pendant la réservation — résultat ignoré", demandeId);
             return demande;
         }
 
-        // Pas de réapplication si le statut a déjà évolué (idempotence)
         if (demande.getStatut() != StatutDemande.EN_ATTENTE) {
-            log.info("Demande {} déjà au statut {} — résultat gRPC ignoré", id, demande.getStatut());
+            log.info("Demande {} déjà au statut {} — résultat gRPC ignoré", demandeId, demande.getStatut());
             return demande;
         }
 
-        // --- S6-06 : tableau de mapping (étude section 7.3) ---
+        mettreAJourStatutDepuisResultat(demande, resultat);
+        return demandeRepository.save(demande);
+    }
+
+    private void libererReservationSiNecessaire(UUID demandeId, ReservationResultat resultat) {
+        if (resultat.statut() != StatutReservation.RESERVEE_STOCK_LOCAL) {
+            return;
+        }
+        try {
+            donStockClient.libererReservation(demandeId, resultat.reference());
+        } catch (RuntimeException erreurLiberation) {
+            log.warn("Libération impossible pour la réservation {} de la demande {} : {}",
+                    resultat.reference(), demandeId, erreurLiberation.getMessage());
+        }
+    }
+
+    /**
+     * Traduit le statut gRPC en statut métier (table de mapping étude section 7.3).
+     */
+    private void mettreAJourStatutDepuisResultat(Demande demande, ReservationResultat resultat) {
         switch (resultat.statut()) {
             case RESERVEE_STOCK_LOCAL -> {
                 demande.setStatut(StatutDemande.SATISFAITE);
@@ -148,95 +188,123 @@ public class DemandeService {
             }
             case STOCK_INSUFFISANT_PARTOUT -> {
                 demande.setStatut(StatutDemande.EN_PENURIE);
-                // --- S6-07 : ouvrir ou réutiliser un appel public pour ce groupe + composant ---
                 appelDonService.ouvrirOuReutiliser(demande);
-                log.info("Demande {} EN_PENURIE — appel public ouvert pour {} / {}",
-                        id, demande.getGroupeSanguin(), demande.getComposant());
+                log.info("Pénurie confirmée — appel public ouvert pour {} / {}",
+                        demande.getGroupeSanguin(), demande.getComposant());
             }
             case LIVREE -> {
-                // Peut arriver si le job de réconciliation appelle appliquerResultat sur un résultat LIVREE
+                // Peut arriver quand le job de réconciliation retrouve une livraison terminée
                 demande.setStatut(StatutDemande.SATISFAITE);
             }
         }
-
-        return demandes.save(demande);
     }
 
     // -------------------------------------------------------------------------
-    // Lecture et modification
+    // Lecture (GET /api/v1/demandes et GET /api/v1/demandes/{id})
     // -------------------------------------------------------------------------
 
     @Transactional(readOnly = true)
-    public List<Demande> lister(StatutDemande statut, String hopitalId) {
-        Specification<Demande> filtre = (r, q, cb) -> cb.conjunction();
-        if (statut != null) {
-            filtre = filtre.and((r, q, cb) -> cb.equal(r.get("statut"), statut));
+    public List<Demande> lister(StatutDemande filtreStatut, String filtreHopitalId) {
+        Specification<Demande> specification = construireSpecification(filtreStatut, filtreHopitalId);
+        Sort triParDateDecroissante = Sort.sort(Demande.class).by(Demande::getDateCreation).descending();
+        return demandeRepository.findAll(specification, triParDateDecroissante);
+    }
+
+    private Specification<Demande> construireSpecification(StatutDemande filtreStatut, String filtreHopitalId) {
+        Specification<Demande> specification = Specification.where(null);
+        if (filtreStatut != null) {
+            specification = specification.and(
+                    (racine, query, builder) -> builder.equal(racine.get("statut"), filtreStatut));
         }
-        if (hopitalId != null && !hopitalId.isBlank()) {
-            filtre = filtre.and((r, q, cb) -> cb.equal(r.get("hopitalId"), hopitalId));
+        if (filtreHopitalId != null && !filtreHopitalId.isBlank()) {
+            specification = specification.and(
+                    (racine, query, builder) -> builder.equal(racine.get("hopitalId"), filtreHopitalId));
         }
-        return demandes.findAll(filtre, Sort.sort(Demande.class).by(Demande::getDateCreation).descending());
+        return specification;
     }
 
     @Transactional(readOnly = true)
-    public Demande lire(UUID id) {
-        return demandes.findById(id)
-                .orElseThrow(() -> new RessourceIntrouvableException("Demande introuvable : " + id));
+    public Demande lire(UUID demandeId) {
+        return demandeRepository.findById(demandeId)
+                .orElseThrow(() -> new RessourceIntrouvableException(
+                        "Demande introuvable : " + demandeId));
     }
+
+    // -------------------------------------------------------------------------
+    // Modification (PATCH /api/v1/demandes/{id})
+    // -------------------------------------------------------------------------
 
     /**
-     * Annule une demande ouverte et/ou corrige le compteur de compensation (repli manuel).
-     * Seul le statut {@code ANNULEE} est accepté comme changement de statut.
+     * Annule une demande ouverte et/ou corrige le compteur de compensation (repli manuel
+     * quand service-donneurs est injoignable).
      */
     @Transactional
-    public Demande modifier(UUID id, ModifierDemandeRequest requete) {
-        if (requete.statut() == null && requete.compensationRecue() == null) {
-            throw new RequeteInvalideException("Au moins un champ est obligatoire : statut ou compensationRecue");
-        }
-        if (requete.statut() != null && requete.statut() != StatutDemande.ANNULEE) {
-            throw new RequeteInvalideException("Seul le statut ANNULEE est accepté pour une mise à jour manuelle");
-        }
+    public Demande modifier(UUID demandeId, ModifierDemandeRequest corps) {
+        validerCorpsModification(corps);
 
-        Demande demande = demandes.findByIdVerrouillee(id)
-                .orElseThrow(() -> new RessourceIntrouvableException("Demande introuvable : " + id));
+        Demande demande = demandeRepository.findByIdVerrouillee(demandeId)
+                .orElseThrow(() -> new RessourceIntrouvableException(
+                        "Demande introuvable : " + demandeId));
 
-        if (requete.statut() == StatutDemande.ANNULEE) {
-            if (reservationsEnCours.contains(id)) {
-                throw new ConflitMetierException(
-                        "La demande est en cours de réservation — réessayez dans quelques secondes");
-            }
-            if (!demande.getStatut().estOuverte()) {
-                throw new ConflitMetierException(
-                        "La demande est au statut " + demande.getStatut() + " et ne peut plus être annulée");
-            }
-            demande.setStatut(StatutDemande.ANNULEE);
+        if (corps.statut() == StatutDemande.ANNULEE) {
+            annulerDemande(demandeId, demande);
         }
 
-        if (requete.compensationRecue() != null) {
-            if (requete.compensationRecue() < 0) {
-                throw new RequeteInvalideException("compensationRecue ne peut pas être négative");
-            }
-            demande.setCompensationRecue(requete.compensationRecue());
+        if (corps.compensationRecue() != null) {
+            corrigerCompensationManuellement(demande, corps.compensationRecue());
         }
 
-        return demandes.save(demande);
+        return demandeRepository.save(demande);
+    }
+
+    private void validerCorpsModification(ModifierDemandeRequest corps) {
+        if (corps.statut() == null && corps.compensationRecue() == null) {
+            throw new RequeteInvalideException(
+                    "Au moins un champ est obligatoire : statut ou compensationRecue");
+        }
+        if (corps.statut() != null && corps.statut() != StatutDemande.ANNULEE) {
+            throw new RequeteInvalideException(
+                    "Seul le statut ANNULEE est accepté pour une mise à jour manuelle");
+        }
+    }
+
+    private void annulerDemande(UUID demandeId, Demande demande) {
+        if (reservationsEnCours.contains(demandeId)) {
+            throw new ConflitMetierException(
+                    "La demande est en cours de réservation — réessayez dans quelques secondes");
+        }
+        if (!demande.getStatut().estOuverte()) {
+            throw new ConflitMetierException(
+                    "La demande est au statut " + demande.getStatut() + " et ne peut plus être annulée");
+        }
+        demande.setStatut(StatutDemande.ANNULEE);
+    }
+
+    private void corrigerCompensationManuellement(Demande demande, int nouvelleValeur) {
+        if (nouvelleValeur < 0) {
+            throw new RequeteInvalideException("compensationRecue ne peut pas être négative");
+        }
+        demande.setCompensationRecue(nouvelleValeur);
     }
 
     // -------------------------------------------------------------------------
-    // Helpers
+    // Helpers internes
     // -------------------------------------------------------------------------
 
-    private void validerCompensation(Integer compensationDemandee) {
-        if (compensationDemandee != null
-                && (compensationDemandee < rules.getCompensationMin()
-                    || compensationDemandee > rules.getCompensationMax())) {
+    private void validerIntervalleCompensation(Integer compensationDemandee) {
+        if (compensationDemandee == null) {
+            return;
+        }
+        boolean horsIntervalle = compensationDemandee < regles.getCompensationMin()
+                || compensationDemandee > regles.getCompensationMax();
+        if (horsIntervalle) {
             throw new RequeteInvalideException(
                     "compensationDemandee doit être entre %d et %d (R17)"
-                            .formatted(rules.getCompensationMin(), rules.getCompensationMax()));
+                            .formatted(regles.getCompensationMin(), regles.getCompensationMax()));
         }
     }
 
-    /** Exposé pour le job de réconciliation (S6-10). */
+    /** Exposé au {@link ReconciliationJob} pour éviter de rejouer une demande en vol. */
     Set<UUID> getReservationsEnCours() {
         return reservationsEnCours;
     }

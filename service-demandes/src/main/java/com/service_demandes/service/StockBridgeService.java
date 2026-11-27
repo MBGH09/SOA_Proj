@@ -106,8 +106,8 @@ public class StockBridgeService implements StockBridge {
     private void connecterStream() {
         log.info("Connexion au stream gRPC SuivreNiveauxStock (backoff={}ms)", backoffMs);
         streamOuvert.set(true);
-        grpcClient.ouvrirStream(
-                null,                     // pas de filtre lieuId → snapshot complet
+        grpcClient.ouvrirStreamNiveauxStock(
+                null,              // pas de filtre → snapshot complet de tous les lieux
                 this::surMessage,
                 this::surErreurStream);
     }

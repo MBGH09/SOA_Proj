@@ -142,7 +142,7 @@ public class ReconciliationJob {
                     transaction.execute(tx -> {
                         demandes.findByIdVerrouillee(demande.getId()).ifPresent(d -> {
                             d.setStatut(StatutDemande.EN_PENURIE);
-                            demandes.save(d);
+                        demandes.save(d);
                             appelDonService.ouvrirOuReutiliser(d);
                         });
                         return null;
@@ -173,8 +173,8 @@ public class ReconciliationJob {
             return;
         }
 
-        transaction.execute(tx -> {
-            demandeService.appliquerResultat(demande.getId(), resultat);
+        transaction.execute(ignoree -> {
+            demandeService.appliquerResultatReservation(demande.getId(), resultat);
             return null;
         });
     }
@@ -199,7 +199,7 @@ public class ReconciliationJob {
                 log.info("Demande {} passée en SATISFAITE par le job de réconciliation", d.getId());
 
                 // Fermer les appels publics ouverts pour ce groupe + composant si le stock est revenu
-                appelDonService.fermerAutomatiquement(d.getGroupeSanguin(), d.getComposant());
+                appelDonService.fermerTousLesAppelsOuvertsPour(d.getGroupeSanguin(), d.getComposant());
             });
             return null;
         });

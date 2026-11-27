@@ -2,7 +2,9 @@ package com.service_demandes.service;
 
 import com.service_demandes.dto.CreateAppelDonRequest;
 import com.service_demandes.entity.AppelDon;
+import com.service_demandes.entity.Composant;
 import com.service_demandes.entity.Demande;
+import com.service_demandes.entity.GroupeSanguin;
 import com.service_demandes.entity.StatutAppelDon;
 import com.service_demandes.exception.RessourceIntrouvableException;
 import com.service_demandes.repository.AppelDonRepository;
@@ -17,14 +19,16 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * S6-07 — Gestion des appels publics aux dons.
+ * Gestion des appels publics aux dons.
  *
  * <ul>
- *   <li>Ouverture automatique sur pénurie (appelé par {@link DemandeService}).</li>
- *   <li>Réutilisation d'un appel déjà OUVERT pour le même groupe + composant.</li>
- *   <li>Ouverture manuelle par le staff hospitalier.</li>
- *   <li>Fermeture manuelle ou automatique (par le job de réconciliation).</li>
- *   <li>Lecture publique sans authentification.</li>
+ *   <li>Ouverture automatique sur pénurie : {@link DemandeService} appelle
+ *       {@link #ouvrirOuReutiliser} dans sa transaction.</li>
+ *   <li>Réutilisation d'un appel déjà OUVERT pour le même groupe + composant (R16) :
+ *       évite de multiplier les appels identiques.</li>
+ *   <li>Ouverture et fermeture manuelles par le staff hospitalier.</li>
+ *   <li>Fermeture automatique par {@link ReconciliationJob} quand le stock remonte.</li>
+ *   <li>Lecture publique sans authentification ({@code GET /api/v1/appels}).</li>
  * </ul>
  */
 @Service
@@ -32,38 +36,43 @@ public class AppelDonService {
 
     private static final Logger log = LoggerFactory.getLogger(AppelDonService.class);
 
-    private final AppelDonRepository appels;
-    private final DemandeRepository demandes;
+    private final AppelDonRepository appelDonRepository;
+    private final DemandeRepository demandeRepository;
 
-    public AppelDonService(AppelDonRepository appels, DemandeRepository demandes) {
-        this.appels = appels;
-        this.demandes = demandes;
+    public AppelDonService(AppelDonRepository appelDonRepository, DemandeRepository demandeRepository) {
+        this.appelDonRepository = appelDonRepository;
+        this.demandeRepository  = demandeRepository;
     }
 
     // -------------------------------------------------------------------------
-    // Ouverture automatique sur EN_PENURIE (appelé par DemandeService, dans sa transaction)
+    // Ouverture automatique sur EN_PENURIE
     // -------------------------------------------------------------------------
 
     /**
-     * Ouvre un appel pour la demande en pénurie, ou réutilise un appel OUVERT existant
-     * pour le même groupe + composant (R16).
-     * Cette méthode doit être appelée <em>à l'intérieur d'une transaction active</em>.
+     * Ouvre un appel pour le groupe + composant de la demande en pénurie,
+     * ou réutilise un appel OUVERT existant pour cette combinaison (R16).
+     * Doit être appelé à l'intérieur d'une transaction active.
      */
     @Transactional
-    public AppelDon ouvrirOuReutiliser(Demande demande) {
-        return appels
+    public AppelDon ouvrirOuReutiliser(Demande demandeEnPenurie) {
+        return appelDonRepository
                 .findFirstByGroupeSanguinAndComposantAndStatut(
-                        demande.getGroupeSanguin(), demande.getComposant(), StatutAppelDon.OUVERT)
-                .orElseGet(() -> {
-                    AppelDon nouvel = AppelDon.builder()
-                            .demande(demande)
-                            .groupeSanguin(demande.getGroupeSanguin())
-                            .composant(demande.getComposant())
-                            .statut(StatutAppelDon.OUVERT)
-                            .build();
-                    log.info("Nouvel appel public ouvert : {} / {}", demande.getGroupeSanguin(), demande.getComposant());
-                    return appels.save(nouvel);
-                });
+                        demandeEnPenurie.getGroupeSanguin(),
+                        demandeEnPenurie.getComposant(),
+                        StatutAppelDon.OUVERT)
+                .orElseGet(() -> creerNouvelAppel(demandeEnPenurie));
+    }
+
+    private AppelDon creerNouvelAppel(Demande demandeEnPenurie) {
+        AppelDon nouvelAppel = AppelDon.builder()
+                .demande(demandeEnPenurie)
+                .groupeSanguin(demandeEnPenurie.getGroupeSanguin())
+                .composant(demandeEnPenurie.getComposant())
+                .statut(StatutAppelDon.OUVERT)
+                .build();
+        log.info("Appel public créé automatiquement : {} / {}",
+                demandeEnPenurie.getGroupeSanguin(), demandeEnPenurie.getComposant());
+        return appelDonRepository.save(nouvelAppel);
     }
 
     // -------------------------------------------------------------------------
@@ -71,99 +80,106 @@ public class AppelDonService {
     // -------------------------------------------------------------------------
 
     @Transactional
-    public AppelDon ouvrir(CreateAppelDonRequest requete) {
-        // Résoudre la demande associée si un identifiant est fourni
-        Demande demande = null;
-        if (requete.demandeId() != null) {
-            demande = demandes.findById(requete.demandeId())
-                    .orElseThrow(() -> new RessourceIntrouvableException(
-                            "Demande introuvable : " + requete.demandeId()));
-        }
+    public AppelDon ouvrir(CreateAppelDonRequest corps) {
+        Demande demandeAssociee = chargerDemandeAssocieeSiPresente(corps);
 
-        AppelDon appel = AppelDon.builder()
-                .demande(demande)
-                .groupeSanguin(requete.groupeSanguin())
-                .composant(requete.composant())
-                .centreCibleId(requete.centreCibleId())
+        AppelDon nouvelAppel = AppelDon.builder()
+                .demande(demandeAssociee)
+                .groupeSanguin(corps.groupeSanguin())
+                .composant(corps.composant())
+                .centreCibleId(corps.centreCibleId())
                 .statut(StatutAppelDon.OUVERT)
                 .build();
 
-        AppelDon sauvegarde = appels.save(appel);
-        log.info("Appel public ouvert manuellement : id={} {} / {}", sauvegarde.getId(),
-                requete.groupeSanguin(), requete.composant());
-        return sauvegarde;
+        AppelDon appelSauvegarde = appelDonRepository.save(nouvelAppel);
+        log.info("Appel public créé manuellement : id={} {} / {}",
+                appelSauvegarde.getId(), corps.groupeSanguin(), corps.composant());
+        return appelSauvegarde;
+    }
+
+    private Demande chargerDemandeAssocieeSiPresente(CreateAppelDonRequest corps) {
+        if (corps.demandeId() == null) {
+            return null;
+        }
+        return demandeRepository.findById(corps.demandeId())
+                .orElseThrow(() -> new RessourceIntrouvableException(
+                        "Demande associée introuvable : " + corps.demandeId()));
     }
 
     // -------------------------------------------------------------------------
     // Fermeture manuelle (PATCH /api/v1/appels/{id})
     // -------------------------------------------------------------------------
 
+    /**
+     * Ferme un appel. Idempotent : retourne l'appel tel quel s'il est déjà fermé.
+     */
     @Transactional
-    public AppelDon fermer(UUID id) {
-        AppelDon appel = appels.findById(id)
-                .orElseThrow(() -> new RessourceIntrouvableException("Appel introuvable : " + id));
+    public AppelDon fermer(UUID appelId) {
+        AppelDon appel = appelDonRepository.findById(appelId)
+                .orElseThrow(() -> new RessourceIntrouvableException("Appel introuvable : " + appelId));
 
         if (appel.getStatut() == StatutAppelDon.FERME) {
-            // Idempotent : déjà fermé, on retourne tel quel
-            return appel;
+            return appel; // déjà fermé, opération idempotente
         }
 
         appel.setStatut(StatutAppelDon.FERME);
         appel.setDateFermeture(Instant.now());
-        log.info("Appel {} fermé manuellement", id);
-        return appels.save(appel);
+        log.info("Appel {} fermé manuellement", appelId);
+        return appelDonRepository.save(appel);
     }
 
     // -------------------------------------------------------------------------
-    // Fermeture automatique par le job de réconciliation (S6-10)
+    // Fermeture automatique par ReconciliationJob
     // -------------------------------------------------------------------------
 
     /**
-     * Ferme automatiquement les appels OUVERT pour un groupe + composant donné.
-     * Appelé par le {@link ReconciliationJob} quand le stock remonte au-dessus du seuil.
+     * Ferme tous les appels OUVERT pour un groupe + composant donné.
+     * Appelé quand le stock remonte au-dessus du seuil.
+     *
+     * @return le nombre d'appels fermés
      */
     @Transactional
-    public int fermerAutomatiquement(
-            com.service_demandes.entity.GroupeSanguin groupe,
-            com.service_demandes.entity.Composant composant) {
+    public int fermerTousLesAppelsOuvertsPour(GroupeSanguin groupeSanguin, Composant composant) {
+        List<AppelDon> appelsAFermer = trouverAppelsOuvertsPour(groupeSanguin, composant);
 
-        List<AppelDon> ouverts = appels
-                .findFirstByGroupeSanguinAndComposantAndStatut(groupe, composant, StatutAppelDon.OUVERT)
-                .stream().toList();
-
-        // Ferme tous les appels ouverts pour cette combinaison
-        List<AppelDon> tousOuverts = appels.findByStatut(StatutAppelDon.OUVERT).stream()
-                .filter(a -> a.getGroupeSanguin() == groupe && a.getComposant() == composant)
-                .toList();
+        if (appelsAFermer.isEmpty()) {
+            return 0;
+        }
 
         Instant maintenant = Instant.now();
-        tousOuverts.forEach(a -> {
-            a.setStatut(StatutAppelDon.FERME);
-            a.setDateFermeture(maintenant);
+        appelsAFermer.forEach(appel -> {
+            appel.setStatut(StatutAppelDon.FERME);
+            appel.setDateFermeture(maintenant);
         });
-        appels.saveAll(tousOuverts);
+        appelDonRepository.saveAll(appelsAFermer);
 
-        if (!tousOuverts.isEmpty()) {
-            log.info("Job réconciliation : {} appel(s) fermé(s) pour {} / {}", tousOuverts.size(), groupe, composant);
-        }
-        return tousOuverts.size();
+        log.info("Réconciliation : {} appel(s) fermé(s) automatiquement pour {} / {}",
+                appelsAFermer.size(), groupeSanguin, composant);
+        return appelsAFermer.size();
+    }
+
+    private List<AppelDon> trouverAppelsOuvertsPour(GroupeSanguin groupeSanguin, Composant composant) {
+        return appelDonRepository.findByStatut(StatutAppelDon.OUVERT).stream()
+                .filter(appel -> appel.getGroupeSanguin() == groupeSanguin
+                              && appel.getComposant() == composant)
+                .toList();
     }
 
     // -------------------------------------------------------------------------
-    // Lecture (GET /api/v1/appels)
+    // Lecture publique (GET /api/v1/appels)
     // -------------------------------------------------------------------------
 
     @Transactional(readOnly = true)
-    public List<AppelDon> lister(StatutAppelDon statut) {
-        if (statut != null) {
-            return appels.findByStatutOrderByDateOuvertureDesc(statut);
+    public List<AppelDon> lister(StatutAppelDon filtreStatut) {
+        if (filtreStatut != null) {
+            return appelDonRepository.findByStatutOrderByDateOuvertureDesc(filtreStatut);
         }
-        return appels.findAll();
+        return appelDonRepository.findAll();
     }
 
     @Transactional(readOnly = true)
-    public AppelDon lire(UUID id) {
-        return appels.findById(id)
-                .orElseThrow(() -> new RessourceIntrouvableException("Appel introuvable : " + id));
+    public AppelDon lire(UUID appelId) {
+        return appelDonRepository.findById(appelId)
+                .orElseThrow(() -> new RessourceIntrouvableException("Appel introuvable : " + appelId));
     }
 }

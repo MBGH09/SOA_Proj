@@ -1,10 +1,14 @@
 package com.service_demandes.client;
 
 import com.service_demandes.config.DemandesRulesProperties;
+import com.service_demandes.entity.Composant;
+import com.service_demandes.entity.GroupeSanguin;
+import com.service_demandes.entity.Urgence;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import jakarta.annotation.PostConstruct;
@@ -27,23 +31,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
- * Implémentation gRPC réelle du {@link DonStockClient}.
- * <p>
- * Active sur tous les profils sauf {@code mock}.
- * Chaque appel porte un deadline configurable ({@code GRPC_DEADLINE_MS}).
- * Un disjoncteur Resilience4j nommé {@code donStock} protège {@code verifierEtReserver}
- * et {@code consulterReservation}.
- * </p>
+ * Client gRPC vers service-don-stock. Active sur tous les profils sauf {@code mock}.
  *
- * <h3>Configuration Resilience4j partagée (S6-09)</h3>
- * <pre>
- * resilience4j.circuitbreaker.instances.donStock.sliding-window-size=10
- * resilience4j.circuitbreaker.instances.donStock.minimum-number-of-calls=5
- * resilience4j.circuitbreaker.instances.donStock.failure-rate-threshold=50
- * resilience4j.circuitbreaker.instances.donStock.wait-duration-in-open-state=10s
- * resilience4j.circuitbreaker.instances.donStock.permitted-number-of-calls-in-half-open-state=3
- * resilience4j.circuitbreaker.instances.donStock.automatic-transition-from-open-to-half-open-enabled=true
- * </pre>
+ * <p>Chaque appel porte un deadline configurable via {@code GRPC_DEADLINE_MS}.
+ * Un disjoncteur Resilience4j nommé {@code donStock} protège les deux appels unaires.
+ * En cas d'ouverture du disjoncteur ou d'erreur réseau, une
+ * {@link DonStockIndisponibleException} est levée : la demande reste {@code EN_ATTENTE}
+ * et le job de réconciliation la reprend plus tard.</p>
  */
 @Component
 @Profile("!mock")
@@ -51,173 +45,228 @@ public class DonStockGrpcClient implements DonStockClient {
 
     private static final Logger log = LoggerFactory.getLogger(DonStockGrpcClient.class);
 
-    private final DemandesRulesProperties props;
+    private final DemandesRulesProperties config;
     private ManagedChannel channel;
-    private DonStockServiceGrpc.DonStockServiceBlockingStub stub;
+    private DonStockServiceGrpc.DonStockServiceBlockingStub blockingStub;
     private DonStockServiceGrpc.DonStockServiceStub asyncStub;
 
-    public DonStockGrpcClient(DemandesRulesProperties props) {
-        this.props = props;
+    public DonStockGrpcClient(DemandesRulesProperties config) {
+        this.config = config;
     }
 
+    // -------------------------------------------------------------------------
+    // Cycle de vie du canal gRPC
+    // -------------------------------------------------------------------------
+
     @PostConstruct
-    void initialiser() {
-        String target = props.getDonStockGrpcTarget();
-        log.info("Connexion gRPC Don & Stock → {}", target);
-        channel = ManagedChannelBuilder.forTarget(target)
+    void ouvrirCanal() {
+        String adresse = config.getDonStockGrpcTarget();
+        log.info("Ouverture du canal gRPC vers service-don-stock : {}", adresse);
+        channel = ManagedChannelBuilder.forTarget(adresse)
                 .usePlaintext()
                 .build();
-        stub = DonStockServiceGrpc.newBlockingStub(channel);
-        asyncStub = DonStockServiceGrpc.newStub(channel);
+        blockingStub = DonStockServiceGrpc.newBlockingStub(channel);
+        asyncStub    = DonStockServiceGrpc.newStub(channel);
     }
 
     @PreDestroy
-    void fermer() {
-        if (channel != null) {
+    void fermerCanal() {
+        if (channel != null && !channel.isShutdown()) {
             channel.shutdown();
+            log.info("Canal gRPC vers service-don-stock fermé");
         }
     }
 
     // -------------------------------------------------------------------------
-    // VerifierEtReserver — protégé par le disjoncteur donStock
+    // VerifierEtReserver (appel 1)
     // -------------------------------------------------------------------------
 
     @Override
-    @CircuitBreaker(name = "donStock", fallbackMethod = "fallbackVerifier")
+    @CircuitBreaker(name = "donStock", fallbackMethod = "quandDisjoncteurOuvertPourVerification")
     public ReservationResultat verifierEtReserver(ReservationCommande commande) {
-        VerifierEtReserverRequest requete = VerifierEtReserverRequest.newBuilder()
+        VerifierEtReserverRequest requete = construireRequeteVerification(commande);
+        VerifierEtReserverResponse reponse = appellerVerifierEtReserver(requete);
+        return traduireReponseVerification(reponse);
+    }
+
+    private VerifierEtReserverRequest construireRequeteVerification(ReservationCommande commande) {
+        return VerifierEtReserverRequest.newBuilder()
                 .setDemandeId(commande.demandeId().toString())
                 .setLieuId(commande.lieuId())
-                .setGroupeSanguin(mapGroupeSanguin(commande.groupeSanguin()))
-                .setComposant(mapComposant(commande.composant()))
+                .setGroupeSanguin(versProtoGroupeSanguin(commande.groupeSanguin()))
+                .setComposant(versProtoComposant(commande.composant()))
                 .setQuantite(commande.quantite())
-                .setUrgence(mapUrgence(commande.urgence()))
+                .setUrgence(versProtoUrgence(commande.urgence()))
                 .build();
+    }
 
+    private VerifierEtReserverResponse appellerVerifierEtReserver(VerifierEtReserverRequest requete) {
         try {
-            VerifierEtReserverResponse reponse = stub
-                    .withDeadlineAfter(props.getGrpcDeadlineMs(), TimeUnit.MILLISECONDS)
+            return blockingStub
+                    .withDeadlineAfter(config.getGrpcDeadlineMs(), TimeUnit.MILLISECONDS)
                     .verifierEtReserver(requete);
-            return mapReponse(reponse);
-        } catch (StatusRuntimeException ex) {
-            log.warn("gRPC VerifierEtReserver échoué : {} — {}", ex.getStatus().getCode(), ex.getMessage());
-            throw new DonStockIndisponibleException("Don & Stock indisponible : " + ex.getStatus().getCode(), ex);
+        } catch (StatusRuntimeException erreurGrpc) {
+            log.warn("VerifierEtReserver échoué — code gRPC : {}, message : {}",
+                    erreurGrpc.getStatus().getCode(), erreurGrpc.getMessage());
+            throw new DonStockIndisponibleException(
+                    "Don & Stock injoignable (code : " + erreurGrpc.getStatus().getCode() + ")",
+                    erreurGrpc);
         }
     }
 
-    @SuppressWarnings("unused")
-    private ReservationResultat fallbackVerifier(ReservationCommande commande, CallNotPermittedException ex) {
-        log.warn("Disjoncteur donStock OUVERT — repli EN_ATTENTE pour demande {}", commande.demandeId());
-        throw new DonStockIndisponibleException("Disjoncteur ouvert vers Don & Stock", ex);
+    private ReservationResultat traduireReponseVerification(VerifierEtReserverResponse reponse) {
+        return new ReservationResultat(
+                versDomaineStatutReservation(reponse.getStatut()),
+                viderSiVide(reponse.getReference()),
+                viderSiVide(reponse.getCentreSource()),
+                reponse.getEtaMinutes() == 0 ? null : reponse.getEtaMinutes());
     }
 
     @SuppressWarnings("unused")
-    private ReservationResultat fallbackVerifier(ReservationCommande commande, DonStockIndisponibleException ex) {
-        throw ex; // laisser remonter le fallback propre
+    private ReservationResultat quandDisjoncteurOuvertPourVerification(
+            ReservationCommande commande, CallNotPermittedException erreurDisjoncteur) {
+        log.warn("Disjoncteur donStock OUVERT — demande {} laissée EN_ATTENTE", commande.demandeId());
+        throw new DonStockIndisponibleException("Disjoncteur ouvert vers service-don-stock", erreurDisjoncteur);
     }
 
     // -------------------------------------------------------------------------
-    // ConsulterReservation — protégé par le disjoncteur donStock
+    // ConsulterReservation (appel de réconciliation)
     // -------------------------------------------------------------------------
 
     @Override
-    @CircuitBreaker(name = "donStock", fallbackMethod = "fallbackConsulter")
+    @CircuitBreaker(name = "donStock", fallbackMethod = "quandDisjoncteurOuvertPourConsultation")
     public Optional<ConsultationResultat> consulterReservation(UUID demandeId) {
         ConsulterReservationRequest requete = ConsulterReservationRequest.newBuilder()
                 .setDemandeId(demandeId.toString())
                 .build();
         try {
-            ConsulterReservationResponse rep = stub
-                    .withDeadlineAfter(props.getGrpcDeadlineMs(), TimeUnit.MILLISECONDS)
+            ConsulterReservationResponse reponse = blockingStub
+                    .withDeadlineAfter(config.getGrpcDeadlineMs(), TimeUnit.MILLISECONDS)
                     .consulterReservation(requete);
-            return Optional.of(new ConsultationResultat(
-                    rep.getDemandeId(),
-                    mapStatutReservation(rep.getStatut()),
-                    rep.getReference(),
-                    rep.getCentreSource(),
-                    rep.getEtaMinutes() == 0 ? null : rep.getEtaMinutes()));
-        } catch (StatusRuntimeException ex) {
-            if (ex.getStatus().getCode() == io.grpc.Status.Code.NOT_FOUND) {
-                return Optional.empty();
-            }
-            log.warn("gRPC ConsulterReservation échoué : {}", ex.getStatus().getCode());
-            throw new DonStockIndisponibleException("ConsulterReservation échoué : " + ex.getStatus().getCode(), ex);
+            return Optional.of(traduireReponseConsultation(reponse));
+        } catch (StatusRuntimeException erreurGrpc) {
+            return traiterErreurConsultation(demandeId, erreurGrpc);
         }
     }
 
+    private ConsultationResultat traduireReponseConsultation(ConsulterReservationResponse reponse) {
+        return new ConsultationResultat(
+                reponse.getDemandeId(),
+                versDomaineStatutReservation(reponse.getStatut()),
+                viderSiVide(reponse.getReference()),
+                viderSiVide(reponse.getCentreSource()),
+                reponse.getEtaMinutes() == 0 ? null : reponse.getEtaMinutes());
+    }
+
+    /**
+     * NOT_FOUND signifie que Don & Stock n'a jamais vu cette demande.
+     * C'est un cas métier normal (la demande sera rejouée), pas une erreur technique.
+     */
+    private Optional<ConsultationResultat> traiterErreurConsultation(
+            UUID demandeId, StatusRuntimeException erreurGrpc) {
+        if (erreurGrpc.getStatus().getCode() == Status.Code.NOT_FOUND) {
+            log.debug("ConsulterReservation : demande {} absente de Don & Stock (NOT_FOUND)", demandeId);
+            return Optional.empty();
+        }
+        log.warn("ConsulterReservation échoué pour demande {} — code gRPC : {}",
+                demandeId, erreurGrpc.getStatus().getCode());
+        throw new DonStockIndisponibleException(
+                "ConsulterReservation injoignable (code : " + erreurGrpc.getStatus().getCode() + ")",
+                erreurGrpc);
+    }
+
     @SuppressWarnings("unused")
-    private Optional<ConsultationResultat> fallbackConsulter(UUID demandeId, CallNotPermittedException ex) {
-        log.warn("Disjoncteur donStock OUVERT — ConsulterReservation ignorée pour {}", demandeId);
-        throw new DonStockIndisponibleException("Disjoncteur ouvert vers Don & Stock", ex);
+    private Optional<ConsultationResultat> quandDisjoncteurOuvertPourConsultation(
+            UUID demandeId, CallNotPermittedException erreurDisjoncteur) {
+        log.warn("Disjoncteur donStock OUVERT — ConsulterReservation ignorée pour demande {}", demandeId);
+        throw new DonStockIndisponibleException("Disjoncteur ouvert vers service-don-stock", erreurDisjoncteur);
     }
 
     // -------------------------------------------------------------------------
-    // LibererReservation — pas de disjoncteur, best-effort
+    // LibererReservation (best-effort, pas de disjoncteur)
     // -------------------------------------------------------------------------
 
     @Override
-    public void libererReservation(UUID demandeId, String reference) {
-        // Le proto ne définit pas d'opération de libération explicite ;
-        // l'annulation de la demande dans service-don-stock se fait côté Don & Stock
-        // via sa propre logique de nettoyage. On trace simplement ici.
-        log.info("Libération best-effort de la réservation {} pour demande {}", reference, demandeId);
+    public void libererReservation(UUID demandeId, String referenceReservation) {
+        // Le proto ne définit pas d'opération de libération explicite.
+        // Don & Stock gère son propre nettoyage. On trace uniquement.
+        log.info("Libération signalée (best-effort) — réservation {} / demande {}",
+                referenceReservation, demandeId);
     }
 
     // -------------------------------------------------------------------------
-    // SuivreNiveauxStock — streaming asynchrone (utilisé par StockBridgeService)
+    // SuivreNiveauxStock (stream asynchrone, utilisé par StockBridgeService)
     // -------------------------------------------------------------------------
 
     /**
-     * Ouvre un stream gRPC {@code SuivreNiveauxStock} et appelle {@code onMessage} à chaque message reçu.
-     * Le stream est asynchrone ; le StreamObserver retourné permet à l'appelant de l'annuler.
+     * Ouvre un stream gRPC {@code SuivreNiveauxStock}.
+     * Appelle {@code surChaqueMiseAJour} pour chaque niveau reçu.
+     * Appelle {@code surFermetureOuErreur} quand le stream se ferme (normalement ou sur erreur),
+     * ce qui permet à {@link com.service_demandes.service.StockBridgeService} de se reconnecter.
      *
-     * @param lieuId       filtre optionnel par lieu (null = pas de filtre)
-     * @param onMessage    callback pour chaque {@link NiveauStockMessage} reçu
-     * @param onError      callback en cas d'erreur ou de fermeture anormale du stream
-     * @return StreamObserver côté client (appeler {@code onCompleted()} pour fermer)
+     * @param lieuId                 filtre optionnel par lieu (null = aucun filtre, tous les lieux)
+     * @param surChaqueMiseAJour     callback appelé pour chaque {@link NiveauStockMessage}
+     * @param surFermetureOuErreur   callback appelé quand le stream se termine
      */
-    public io.grpc.stub.ClientCallStreamObserver<SuivreNiveauxStockRequest> ouvrirStream(
+    public void ouvrirStreamNiveauxStock(
             String lieuId,
-            Consumer<NiveauStockMessage> onMessage,
-            Consumer<Throwable> onError) {
+            Consumer<NiveauStockMessage> surChaqueMiseAJour,
+            Consumer<Throwable> surFermetureOuErreur) {
 
-        SuivreNiveauxStockRequest requete = SuivreNiveauxStockRequest.newBuilder()
-                .setLieuId(lieuId != null ? lieuId : "")
-                .build();
+        SuivreNiveauxStockRequest requete = construireRequeteSuivi(lieuId);
+        asyncStub.suivreNiveauxStock(requete, new ObservateurNiveauxStock(
+                surChaqueMiseAJour, surFermetureOuErreur));
+    }
 
-        io.grpc.stub.ClientCallStreamObserver<SuivreNiveauxStockRequest>[] refHolder = new io.grpc.stub.ClientCallStreamObserver[1];
+    private SuivreNiveauxStockRequest construireRequeteSuivi(String lieuId) {
+        SuivreNiveauxStockRequest.Builder builder = SuivreNiveauxStockRequest.newBuilder();
+        if (lieuId != null && !lieuId.isBlank()) {
+            builder.setLieuId(lieuId);
+        }
+        return builder.build();
+    }
 
-        asyncStub.suivreNiveauxStock(requete, new StreamObserver<>() {
-            @Override
-            public void onNext(NiveauStockMessage message) {
-                onMessage.accept(message);
-            }
+    /**
+     * Observateur du stream {@code SuivreNiveauxStock}.
+     * Séparé en classe nommée pour respecter la règle "do one thing" et rendre le code lisible.
+     */
+    private static final class ObservateurNiveauxStock implements StreamObserver<NiveauStockMessage> {
 
-            @Override
-            public void onError(Throwable t) {
-                log.warn("Stream SuivreNiveauxStock erreur : {}", t.getMessage());
-                onError.accept(t);
-            }
+        private static final Logger log = LoggerFactory.getLogger(ObservateurNiveauxStock.class);
 
-            @Override
-            public void onCompleted() {
-                log.info("Stream SuivreNiveauxStock terminé normalement");
-                onError.accept(new RuntimeException("stream-completed"));
-            }
-        });
+        private final Consumer<NiveauStockMessage> surChaqueMiseAJour;
+        private final Consumer<Throwable> surFermetureOuErreur;
 
-        // On retourne null ici car l'API grpc-java ne donne pas directement l'observer client
-        // dans ce pattern. Le StockBridgeService gère la reconnexion via onError.
-        return null;
+        ObservateurNiveauxStock(Consumer<NiveauStockMessage> surChaqueMiseAJour,
+                                Consumer<Throwable> surFermetureOuErreur) {
+            this.surChaqueMiseAJour   = surChaqueMiseAJour;
+            this.surFermetureOuErreur = surFermetureOuErreur;
+        }
+
+        @Override
+        public void onNext(NiveauStockMessage niveauRecu) {
+            surChaqueMiseAJour.accept(niveauRecu);
+        }
+
+        @Override
+        public void onError(Throwable erreurStream) {
+            log.warn("Stream SuivreNiveauxStock interrompu : {}", erreurStream.getMessage());
+            surFermetureOuErreur.accept(erreurStream);
+        }
+
+        @Override
+        public void onCompleted() {
+            log.info("Stream SuivreNiveauxStock terminé normalement — reconnexion en cours");
+            surFermetureOuErreur.accept(new RuntimeException("stream-completed"));
+        }
     }
 
     // -------------------------------------------------------------------------
-    // Mappers proto ↔ domaine
+    // Mappers domaine → proto
     // -------------------------------------------------------------------------
 
-    private tn.iit.blood.donstock.v1.GroupeSanguin mapGroupeSanguin(
-            com.service_demandes.entity.GroupeSanguin gs) {
-        return switch (gs) {
+    private tn.iit.blood.donstock.v1.GroupeSanguin versProtoGroupeSanguin(GroupeSanguin groupeSanguin) {
+        return switch (groupeSanguin) {
             case A_POS  -> tn.iit.blood.donstock.v1.GroupeSanguin.A_POS;
             case A_NEG  -> tn.iit.blood.donstock.v1.GroupeSanguin.A_NEG;
             case B_POS  -> tn.iit.blood.donstock.v1.GroupeSanguin.B_POS;
@@ -229,40 +278,44 @@ public class DonStockGrpcClient implements DonStockClient {
         };
     }
 
-    private tn.iit.blood.donstock.v1.Composant mapComposant(
-            com.service_demandes.entity.Composant c) {
-        return switch (c) {
-            case CGR       -> tn.iit.blood.donstock.v1.Composant.CGR;
-            case PLASMA    -> tn.iit.blood.donstock.v1.Composant.PLASMA;
+    private tn.iit.blood.donstock.v1.Composant versProtoComposant(Composant composant) {
+        return switch (composant) {
+            case CGR        -> tn.iit.blood.donstock.v1.Composant.CGR;
+            case PLASMA     -> tn.iit.blood.donstock.v1.Composant.PLASMA;
             case PLAQUETTES -> tn.iit.blood.donstock.v1.Composant.PLAQUETTES;
         };
     }
 
-    private tn.iit.blood.donstock.v1.Urgence mapUrgence(
-            com.service_demandes.entity.Urgence u) {
-        return switch (u) {
+    private tn.iit.blood.donstock.v1.Urgence versProtoUrgence(Urgence urgence) {
+        return switch (urgence) {
             case NORMALE  -> tn.iit.blood.donstock.v1.Urgence.NORMALE;
             case HAUTE    -> tn.iit.blood.donstock.v1.Urgence.HAUTE;
             case CRITIQUE -> tn.iit.blood.donstock.v1.Urgence.CRITIQUE;
         };
     }
 
-    private ReservationResultat mapReponse(VerifierEtReserverResponse rep) {
-        return new ReservationResultat(
-                mapStatutReservation(rep.getStatut()),
-                rep.getReference().isEmpty() ? null : rep.getReference(),
-                rep.getCentreSource().isEmpty() ? null : rep.getCentreSource(),
-                rep.getEtaMinutes() == 0 ? null : rep.getEtaMinutes());
-    }
+    // -------------------------------------------------------------------------
+    // Mapper proto → domaine
+    // -------------------------------------------------------------------------
 
-    StatutReservation mapStatutReservation(tn.iit.blood.donstock.v1.StatutReservation s) {
-        return switch (s) {
+    StatutReservation versDomaineStatutReservation(tn.iit.blood.donstock.v1.StatutReservation statutProto) {
+        return switch (statutProto) {
             case RESERVEE_STOCK_LOCAL       -> StatutReservation.RESERVEE_STOCK_LOCAL;
             case APPROVISIONNEMENT_COMMANDE -> StatutReservation.APPROVISIONNEMENT_COMMANDE;
             case STOCK_INSUFFISANT_PARTOUT  -> StatutReservation.STOCK_INSUFFISANT_PARTOUT;
             case LIVREE                     -> StatutReservation.LIVREE;
             case EN_ATTENTE_CONFIRMATION    -> StatutReservation.EN_ATTENTE_CONFIRMATION;
-            default -> throw new IllegalStateException("Statut gRPC inconnu : " + s);
+            default -> throw new IllegalStateException(
+                    "Statut gRPC non reconnu dans le domaine métier : " + statutProto);
         };
+    }
+
+    // -------------------------------------------------------------------------
+    // Helper
+    // -------------------------------------------------------------------------
+
+    /** Retourne null si la chaîne proto est vide (proto3 renvoie "" par défaut). */
+    private static String viderSiVide(String valeurProto) {
+        return valeurProto.isEmpty() ? null : valeurProto;
     }
 }
