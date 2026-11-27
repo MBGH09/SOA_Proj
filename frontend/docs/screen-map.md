@@ -17,34 +17,34 @@ and `_web.dart` copies.
 | 04 | Book a slot | 390 + 1440 | `/donor/book` | `book_slot_screen.dart` | free slots, 409 slot full, deferral, already booked |
 | 05 | My appointments | 390 + 1440 | `/donor/appointments` | `my_appointments_screen.dart` | upcoming / past, cancel |
 | 06 | Move appointment | 390 + 1440 | `/donor/appointments/move` | `move_appointment_screen.dart` | new slot, 409 |
-| 07 | My certificates | 390 + 1440 | `/donor/certificates` | `my_certificates_screen.dart` | preparing / issued, refresh |
-| 08 | Verify a certificate | 390 + 1440 | `/donor/verify` | `verify_certificate_screen.dart` | found / not found / invalid (3 frames) |
+| 07 | My certificates | 390 + 1440 | `/donor/certificates` | `my_certificates_screen.dart` | issued / preparing, empty, 503, refresh |
+| 08 | Verify a certificate | 390 + 1440 | `/donor/verify` | `verify_certificate_screen.dart` | empty input / valid / not valid / not found (3 frames + contract) |
 
 ## Centre staff — `features/centre/presentation/screens/`
 
 | # | Screen | Layouts | Route | File | Key states |
 |---|---|---|---|---|---|
-| C1 | Today at the centre | 1440 | `/centre/today` | `today_screen.dart` | agenda, capacity, start visit |
-| C2 | Donation board | 1440 | `/centre/board` | `donation_board_screen.dart` | 4 columns/steps, active-step lock |
-| C3 | Donation visit | 1440 + 390 | `/centre/visits/:id` | `donation_visit_screen.dart` | reception → interview → collection → rest |
-| C4 | Record a deferral | 1440 | `/centre/deferrals/new` | `record_deferral_screen.dart` | reason, start/end date, invalid range |
-| C5 | Slot management | 1440 | `/centre/slots` | `slot_management_screen.dart` | capacity default 4, create slot |
+| C1 | Today at the centre | 1440 + 390 | `/centre/today` | `today_screen.dart` | figures, agenda (open / check in / close), queue, stock, low-stock alert |
+| C2 | Donation board | 1440 + 390 | `/centre/board` | `donation_board_screen.dart` | 5 columns (Reception → Done), empty board, 503 |
+| C3 | Donation visit | 1440 + 390 | `/centre/visits/:id` | `donation_visit_screen.dart` | reception → interview → collection → rest; 409 wrong step, 400 volume, 409 rest |
+| C4 | Record a deferral | 1440 + 390 | `/centre/deferrals/new` | `record_deferral_screen.dart` | CIN lookup, reason, duration, start/end date, invalid range, current deferral |
+| C5 | Slot management | 1440 + 390 | `/centre/slots` | `slot_management_screen.dart` | day table + summary, create slots (single/daily/weekly), overlap 409 |
 
 ## Hospital — `features/hospital/presentation/screens/`
 
 | # | Screen | Layouts | Route | File | Key states |
 |---|---|---|---|---|---|
-| H1 | New request | 1440 | `/hospital/requests/new` | `new_request_screen.dart` | motif/group/component/quantity/urgency, anonymous ref |
-| H2 | Requests list | 1440 | `/hospital/requests` | `requests_list_screen.dart` | 5 statuses, urgency badges, filters |
-| H3 | Request detail | 1440 | `/hospital/requests/:id` | `request_detail_screen.dart` | delivery ETA, compensation progress + cert entry |
-| H4 | Stock dashboard | 1440 | `/hospital/stock` | `stock_dashboard_screen.dart` | live levels vs thresholds, legend |
+| H1 | New request | 1440 + 390 | `/hospital/requests/new` | `new_request_screen.dart` | patient ref (R19), group, component, units (R11), urgency, local stock side card, shortage / 400 / 503 |
+| H2 | Requests list | 1440 + 390 | `/hospital/requests` | `requests_list_screen.dart` | All / Open / Reserved / In delivery / Delivered / Critical, search, 4 figures, empty / 503 |
+| H3 | Request detail | 1440 + 390 | `/hospital/requests/:id` | `request_detail_screen.dart` | reservation + source, order, delivery stages, compensation counter, add certificate (409 R26), correct by hand |
+| H4 | Stock dashboard | 1440 + 390 | `/hospital/stock` | `stock_dashboard_screen.dart` | place chips, Updating live, 4 figures, 8 × 3 board, legend, below-threshold list, 503 |
 
 ## Admin — `features/admin/presentation/screens/`
 
 | # | Screen | Layouts | Route | File | Key states |
 |---|---|---|---|---|---|
-| A1 | Stock thresholds | 1440 | `/admin/thresholds` | `stock_thresholds_screen.dart` | per group × component steppers, save/reset, audit trail |
-| — | Stock dashboard (shared) | 1440 | `/admin/stock` | reuse `hospital/.../stock_dashboard_screen.dart` | same widget, Admin role label |
+| A1 | Stock thresholds | 1440 + 390 | `/admin/thresholds` | `stock_thresholds_screen.dart` | 24 rules ordered by last change, steppers, Save / Reset, current-below red, audit trail, 503 |
+| — | Stock dashboard (shared) | 1440 + 390 | `/admin/stock` | `admin_stock_screen.dart` → H4 widget | same widget, Admin role rail |
 
 ## Shell and shared widgets
 
@@ -63,10 +63,13 @@ and `_web.dart` copies.
 | circular icon tile (centre pin, past visit) | `widgets/app_icon_avatar.dart` |
 | closed-list field (blood group, place) | `widgets/app_select_field.dart` |
 | `Badge / Neutral · Success · Warning · Critical` | `widgets/app_badge.dart` |
+| label/value grid (certificate fields, verification answer) | `widgets/app_detail_grid.dart` |
 | `ListTile` | `widgets/app_list_tile.dart` |
 | `DataTable` | `widgets/app_data_table.dart` |
 | `StatCard` | `widgets/app_stat_card.dart` |
 | stock board cell | `widgets/stock_cell.dart` |
+| dense 8 × 3 stock board (H4) | `features/hospital/presentation/widgets/stock_board.dart` |
+| request → badge tone / status helpers | `features/hospital/presentation/widgets/request_status.dart` |
 | step dots | `widgets/app_step_indicator.dart` |
 | `Divider` | `widgets/app_divider.dart` |
 | page title block | `widgets/app_page_header.dart` |

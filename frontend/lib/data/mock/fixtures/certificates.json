@@ -1,0 +1,42 @@
+{
+  "mine": [
+    {
+      "statut": "EMIS",
+      "numeroCertificat": "CERT-2026-000314",
+      "numeroDonNational": "NDN-2026-118842",
+      "donneurNom": "Amira Ben Salah",
+      "cinMasque": "08••••67",
+      "dateDon": "2026-08-12",
+      "centre": "CRTS Sfax",
+      "volumeMl": 450,
+      "autorite": "CNTS"
+    },
+    {
+      "statut": "EN_PREPARATION",
+      "numeroCertificat": null,
+      "numeroDonNational": null,
+      "donneurNom": "Amira Ben Salah",
+      "cinMasque": "08••••67",
+      "dateDon": "2026-11-03",
+      "centre": "CRTS Sfax",
+      "volumeMl": 450,
+      "autorite": "CNTS"
+    }
+  ],
+  "verifications": [
+    {
+      "numeroCertificat": "CERT-2026-000314",
+      "valide": true,
+      "date": "2026-08-12",
+      "centre": "CRTS Sfax",
+      "autorite": "CNTS"
+    },
+    {
+      "numeroCertificat": "CERT-2026-000201",
+      "valide": false,
+      "date": "2026-06-03",
+      "centre": "CHU Habib Bourguiba",
+      "autorite": "CNTS"
+    }
+  ]
+}

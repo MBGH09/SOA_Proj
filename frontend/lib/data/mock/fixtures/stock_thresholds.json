@@ -1,0 +1,554 @@
+{
+  "sites": {
+    "HOP-SFX-01": {
+      "rules": [
+        {
+          "bloodGroup": "O_NEG",
+          "component": "CGR",
+          "threshold": 8,
+          "changedBy": "Amine K.",
+          "changedAt": "2026-11-12T09:12:00"
+        },
+        {
+          "bloodGroup": "O_NEG",
+          "component": "PLASMA",
+          "threshold": 6,
+          "changedBy": "Amine K.",
+          "changedAt": "2026-11-12T09:12:00"
+        },
+        {
+          "bloodGroup": "O_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 2,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_POS",
+          "component": "CGR",
+          "threshold": 10,
+          "changedBy": "Sonia B.",
+          "changedAt": "2026-11-04T14:02:00"
+        },
+        {
+          "bloodGroup": "O_POS",
+          "component": "PLASMA",
+          "threshold": 8,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_POS",
+          "component": "PLAQUETTES",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_NEG",
+          "component": "CGR",
+          "threshold": 6,
+          "changedBy": "Sonia B.",
+          "changedAt": "2026-11-04T14:02:00"
+        },
+        {
+          "bloodGroup": "A_NEG",
+          "component": "PLASMA",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 3,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_POS",
+          "component": "CGR",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_POS",
+          "component": "PLASMA",
+          "threshold": 8,
+          "changedBy": "Amine K.",
+          "changedAt": "2026-10-28T11:40:00"
+        },
+        {
+          "bloodGroup": "A_POS",
+          "component": "PLAQUETTES",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_NEG",
+          "component": "CGR",
+          "threshold": 5,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_NEG",
+          "component": "PLASMA",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 2,
+          "changedBy": "Amine K.",
+          "changedAt": "2026-10-28T11:40:00"
+        },
+        {
+          "bloodGroup": "B_POS",
+          "component": "CGR",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_POS",
+          "component": "PLASMA",
+          "threshold": 8,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_POS",
+          "component": "PLAQUETTES",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_NEG",
+          "component": "CGR",
+          "threshold": 3,
+          "changedBy": "Sonia B.",
+          "changedAt": "2026-10-21T16:25:00"
+        },
+        {
+          "bloodGroup": "AB_NEG",
+          "component": "PLASMA",
+          "threshold": 3,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 2,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_POS",
+          "component": "CGR",
+          "threshold": 6,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_POS",
+          "component": "PLASMA",
+          "threshold": 6,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_POS",
+          "component": "PLAQUETTES",
+          "threshold": 3,
+          "changedBy": "Sonia B.",
+          "changedAt": "2026-10-21T16:25:00"
+        }
+      ],
+      "audit": [
+        {
+          "who": "Amine K.",
+          "ruleKey": "O negative · red cells",
+          "from": 6,
+          "to": 8,
+          "at": "2026-11-12T09:12:00"
+        },
+        {
+          "who": "Sonia B.",
+          "ruleKey": "A negative · red cells",
+          "from": 8,
+          "to": 6,
+          "at": "2026-11-04T14:02:00"
+        }
+      ]
+    },
+    "C-SFAX": {
+      "rules": [
+        {
+          "bloodGroup": "O_NEG",
+          "component": "CGR",
+          "threshold": 8,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_NEG",
+          "component": "PLASMA",
+          "threshold": 6,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 2,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_POS",
+          "component": "CGR",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_POS",
+          "component": "PLASMA",
+          "threshold": 8,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_POS",
+          "component": "PLAQUETTES",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_NEG",
+          "component": "CGR",
+          "threshold": 6,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_NEG",
+          "component": "PLASMA",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 3,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_POS",
+          "component": "CGR",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_POS",
+          "component": "PLASMA",
+          "threshold": 8,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_POS",
+          "component": "PLAQUETTES",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_NEG",
+          "component": "CGR",
+          "threshold": 5,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_NEG",
+          "component": "PLASMA",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 2,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_POS",
+          "component": "CGR",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_POS",
+          "component": "PLASMA",
+          "threshold": 8,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_POS",
+          "component": "PLAQUETTES",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_NEG",
+          "component": "CGR",
+          "threshold": 3,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_NEG",
+          "component": "PLASMA",
+          "threshold": 3,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 2,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_POS",
+          "component": "CGR",
+          "threshold": 6,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_POS",
+          "component": "PLASMA",
+          "threshold": 6,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_POS",
+          "component": "PLAQUETTES",
+          "threshold": 3,
+          "changedBy": null,
+          "changedAt": null
+        }
+      ],
+      "audit": [
+        {
+          "who": "Sonia B.",
+          "ruleKey": "AB negative · platelets",
+          "from": 3,
+          "to": 2,
+          "at": "2026-11-08T10:20:00"
+        }
+      ]
+    },
+    "CNTS": {
+      "rules": [
+        {
+          "bloodGroup": "O_NEG",
+          "component": "CGR",
+          "threshold": 12,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_NEG",
+          "component": "PLASMA",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 6,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_POS",
+          "component": "CGR",
+          "threshold": 20,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_POS",
+          "component": "PLASMA",
+          "threshold": 18,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "O_POS",
+          "component": "PLAQUETTES",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_NEG",
+          "component": "CGR",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_NEG",
+          "component": "PLASMA",
+          "threshold": 8,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 5,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_POS",
+          "component": "CGR",
+          "threshold": 20,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_POS",
+          "component": "PLASMA",
+          "threshold": 18,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "A_POS",
+          "component": "PLAQUETTES",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_NEG",
+          "component": "CGR",
+          "threshold": 8,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_NEG",
+          "component": "PLASMA",
+          "threshold": 6,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 4,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_POS",
+          "component": "CGR",
+          "threshold": 20,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_POS",
+          "component": "PLASMA",
+          "threshold": 18,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "B_POS",
+          "component": "PLAQUETTES",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_NEG",
+          "component": "CGR",
+          "threshold": 6,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_NEG",
+          "component": "PLASMA",
+          "threshold": 5,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_NEG",
+          "component": "PLAQUETTES",
+          "threshold": 3,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_POS",
+          "component": "CGR",
+          "threshold": 10,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_POS",
+          "component": "PLASMA",
+          "threshold": 8,
+          "changedBy": null,
+          "changedAt": null
+        },
+        {
+          "bloodGroup": "AB_POS",
+          "component": "PLAQUETTES",
+          "threshold": 5,
+          "changedBy": null,
+          "changedAt": null
+        }
+      ],
+      "audit": [
+        {
+          "who": "Amine K.",
+          "ruleKey": "O negative · plasma",
+          "from": 12,
+          "to": 10,
+          "at": "2026-11-02T08:45:00"
+        }
+      ]
+    }
+  }
+}

@@ -15,6 +15,7 @@ abstract final class AppFormatters {
   static final DateFormat _longDate = DateFormat('d MMMM y');
   static final DateFormat _weekdayDayMonth = DateFormat('EEE d MMM');
   static final DateFormat _weekdayFull = DateFormat('EEEE d MMMM');
+  static final DateFormat _weekdayFullYear = DateFormat('EEEE d MMMM y');
   static final DateFormat _weekdayFullTime = DateFormat('EEEE d MMMM · HH:mm');
   static final DateFormat _weekdayDayMonthTime = DateFormat('EEE d MMM · HH:mm');
 
@@ -46,6 +47,10 @@ abstract final class AppFormatters {
   /// `Thursday 12 November` — the headline of an appointment card.
   static String weekdayFull(DateTime date) => _weekdayFull.format(date);
 
+  /// `Thursday 12 November 2026` — the centre's day, with the year.
+  static String weekdayFullYear(DateTime date) =>
+      _weekdayFullYear.format(date);
+
   /// `Thursday 12 November · 10:30` — appointment headline with the time.
   static String weekdayFullTime(DateTime instant) =>
       _weekdayFullTime.format(instant);
@@ -54,16 +59,20 @@ abstract final class AppFormatters {
   static String weekdayDayMonthTime(DateTime instant) =>
       _weekdayDayMonthTime.format(instant);
 
-  /// `2 min ago`, `3 h ago`, `2 d ago`, `just now`.
+  /// `12 min ago`, `3 h ago`, `Yesterday`, `2 days ago`, `just now`.
+  ///
+  /// Below a day the elapsed time is used; from a day on, the calendar decides,
+  /// so a request updated at 23:50 reads "Yesterday" the next morning.
   static String ageFrom(DateTime then, DateTime now) {
-    final seconds = now.difference(then).inSeconds;
-    if (seconds < 45) return 'just now';
-    final minutes = (seconds / 60).round();
-    if (minutes < 60) return '$minutes min ago';
-    final hours = (minutes / 60).round();
-    if (hours < 24) return '$hours h ago';
-    final days = (hours / 24).round();
-    return '$days d ago';
+    final elapsed = now.difference(then);
+    if (elapsed.inMinutes < 1) return 'just now';
+    if (elapsed.inMinutes < 60) return '${elapsed.inMinutes} min ago';
+    if (elapsed.inHours < 24) return '${elapsed.inHours} h ago';
+    final days = DateTime(now.year, now.month, now.day)
+        .difference(DateTime(then.year, then.month, then.day))
+        .inDays;
+    if (days <= 1) return 'Yesterday';
+    return '$days days ago';
   }
 
   /// `1 donor` / `4 donors` — never "1 donors".

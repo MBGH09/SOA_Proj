@@ -9,19 +9,25 @@ class AppCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(AppSpacing.lg),
+    this.background,
+    this.bordered = true,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
+
+  /// Overrides the white surface, e.g. the beige summary tiles on H2.
+  final Color? background;
+  final bool bordered;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: background ?? AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.outline),
+        border: bordered ? Border.all(color: AppColors.outline) : null,
       ),
       child: child,
     );

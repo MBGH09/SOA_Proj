@@ -1,3 +1,4 @@
+import 'package:blood_network/core/errors/api_error.dart';
 import 'package:blood_network/data/models/appointment.dart';
 import 'package:blood_network/data/models/appointment_summary.dart';
 import 'package:blood_network/data/models/centre.dart';
@@ -67,6 +68,27 @@ List<SlotDay> sampleDays() => [
   ),
 ];
 
+/// A short week of slots shaped like the centre's own table (C5).
+List<SlotDay> sampleCentreDays() => [
+  SlotDay(
+    date: DateTime(2026, 11, 12),
+    times: const [
+      SlotTime(start: '09:00', end: '10:00', capacity: 6, placesLeft: 0),
+      SlotTime(start: '10:00', end: '11:00', capacity: 6, placesLeft: 2),
+      SlotTime(start: '11:00', end: '12:00', capacity: 6, placesLeft: 4),
+      SlotTime(start: '14:00', end: '15:00', capacity: 6, placesLeft: 6),
+      SlotTime(start: '15:00', end: '16:00', capacity: 6, placesLeft: 3),
+    ],
+  ),
+  SlotDay(
+    date: DateTime(2026, 11, 13),
+    times: const [
+      SlotTime(start: '09:00', end: '10:00', capacity: 6, placesLeft: 1),
+      SlotTime(start: '10:00', end: '11:00', capacity: 6, placesLeft: 3),
+    ],
+  ),
+];
+
 /// Test double for the Centres / appointments service.
 class FakeAppointmentRepository implements AppointmentRepository {
   FakeAppointmentRepository({
@@ -75,6 +97,8 @@ class FakeAppointmentRepository implements AppointmentRepository {
     AppointmentSummary? summary,
     List<Centre>? centres,
     List<SlotDay>? days,
+    List<SlotDay>? centreDays,
+    this.createError,
   }) : _upcoming = upcoming ?? [sampleAppointment()],
        _past =
            past ??
@@ -94,22 +118,32 @@ class FakeAppointmentRepository implements AppointmentRepository {
              certificateReady: true,
            ),
        _centres = centres ?? [sampleCentre()],
-       _days = days ?? sampleDays();
+       _days = days ?? sampleDays(),
+       _centreDays = centreDays ?? sampleCentreDays();
 
   final List<Appointment> _upcoming;
   final List<Appointment> _past;
   final AppointmentSummary _summary;
   final List<Centre> _centres;
   final List<SlotDay> _days;
+  final List<SlotDay> _centreDays;
+
+  /// When set, [createSlots] throws it (a 400 or 409 contract failure).
+  final ApiError? createError;
 
   int bookCalls = 0;
   int moveCalls = 0;
   int cancelCalls = 0;
+  int createCalls = 0;
   DateTime? bookedAt;
   DateTime? movedAt;
   String? cancelledId;
   String? bookVariant;
   String? moveVariant;
+  int? createdCapacity;
+  SlotRepeat? createdRepeat;
+  String? createdFrom;
+  String? createdTo;
 
   @override
   Future<List<Appointment>> upcoming() async => List.of(_upcoming);
@@ -128,6 +162,35 @@ class FakeAppointmentRepository implements AppointmentRepository {
     required String centreId,
     bool forMove = false,
   }) async => List.of(_days);
+
+  @override
+  Future<List<SlotDay>> centreDays({required String centreId}) async =>
+      List.of(_centreDays);
+
+  @override
+  Future<SlotDay> createSlots({
+    required String centreId,
+    required DateTime date,
+    required String from,
+    required String to,
+    required int capacity,
+    SlotRepeat repeat = SlotRepeat.single,
+    String? variant,
+  }) async {
+    createCalls++;
+    createdCapacity = capacity;
+    createdRepeat = repeat;
+    createdFrom = from;
+    createdTo = to;
+    final error = createError;
+    if (error != null) throw error;
+    return SlotDay(
+      date: date,
+      times: [
+        SlotTime(start: from, end: to, capacity: capacity, placesLeft: capacity),
+      ],
+    );
+  }
 
   @override
   Future<Appointment> book({

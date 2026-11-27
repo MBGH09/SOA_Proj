@@ -49,29 +49,34 @@ class AppChip extends StatelessWidget {
         ? AppColors.primary
         : AppColors.outline;
 
-    return Material(
-      color: background,
-      shape: StadiumBorder(side: BorderSide(color: border)),
-      child: InkWell(
-        onTap: disabled ? null : onTap,
-        customBorder: const StadiumBorder(),
-        child: Container(
-          height: height,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 16, color: foreground),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                label,
-                style: AppTypography.textTheme.labelLarge?.copyWith(
-                  color: foreground,
+    return Semantics(
+      selected: selected,
+      button: onTap != null && !disabled,
+      enabled: !disabled,
+      child: Material(
+        color: background,
+        shape: StadiumBorder(side: BorderSide(color: border)),
+        child: InkWell(
+          onTap: disabled ? null : onTap,
+          customBorder: const StadiumBorder(),
+          child: Container(
+            height: height,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 16, color: foreground),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: AppTypography.textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
