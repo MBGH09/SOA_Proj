@@ -1,0 +1,11 @@
+{
+  "cin": "87654321",
+  "nom": "Trabelsi",
+  "prenom": "Amine",
+  "dateNaissance": "1998-03-12",
+  "poidsKg": 70,
+  "groupeSanguin": "O_POS",
+  "ville": "Sfax",
+  "telephone": "22123456",
+  "premierDon": true
+}

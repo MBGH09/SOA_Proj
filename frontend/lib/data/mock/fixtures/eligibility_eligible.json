@@ -1,0 +1,27 @@
+{
+  "decision": "ELIGIBLE",
+  "headline": "You can donate today",
+  "summary": "Every national rule is satisfied. Book a slot at the centre that suits you.",
+  "checks": [
+    {
+      "label": "8 weeks since last whole-blood donation",
+      "detail": "Last donation on 12 Sep · satisfied",
+      "satisfied": true
+    },
+    {
+      "label": "Between 18 and 65 years old",
+      "detail": "You are 25 · satisfied",
+      "satisfied": true
+    },
+    {
+      "label": "Weight at least 50 kg",
+      "detail": "You recorded 62 kg · satisfied",
+      "satisfied": true
+    },
+    {
+      "label": "No fever or infection for 14 days",
+      "detail": "Declared on your questionnaire",
+      "satisfied": true
+    }
+  ]
+}

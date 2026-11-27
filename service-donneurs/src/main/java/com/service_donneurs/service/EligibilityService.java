@@ -1,5 +1,6 @@
 package com.service_donneurs.service;
 
+import com.service_donneurs.config.BloodRulesProperties;
 import com.service_donneurs.dto.EligibilityResponse;
 import com.service_donneurs.model.Donneur;
 import com.service_donneurs.repository.DonneurRepository;
@@ -13,9 +14,11 @@ import java.time.Period;
 public class EligibilityService {
 
         private final DonneurRepository donneurRepository;
+        private final BloodRulesProperties rules;
 
-    public EligibilityService(DonneurRepository donneurRepository) {
+    public EligibilityService(DonneurRepository donneurRepository, BloodRulesProperties rules) {
         this.donneurRepository = donneurRepository;
+        this.rules = rules;
     }
 
     // nouvelle méthode ici
@@ -28,23 +31,23 @@ public class EligibilityService {
                 LocalDate.now())
                 .getYears();
 
-        if (age < 18) {
+        if (age < rules.getAgeMin()) {
             return new EligibilityResponse(false,
                     "AGE_MIN_NON_ATTEINT");
         }
 
-        if (age > 70) {
+        if (age > rules.getAgeMax()) {
             return new EligibilityResponse(false,
                     "AGE_MAX_DEPASSE");
         }
 
         if (Boolean.TRUE.equals(donneur.getPremierDon())
-                && age > 65) {
+                && age > rules.getAgePremierDonMax()) {
             return new EligibilityResponse(false,
                     "PREMIER_DON_AGE_DEPASSE");
         }
 
-        if (donneur.getPoidsKg() < 50) {
+        if (donneur.getPoidsKg() < rules.getPoidsMinKg()) {
             return new EligibilityResponse(false,
                     "POIDS_INSUFFISANT");
         }
