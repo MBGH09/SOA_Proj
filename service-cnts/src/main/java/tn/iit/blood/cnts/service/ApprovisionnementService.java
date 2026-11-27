@@ -38,10 +38,13 @@ public class ApprovisionnementService {
 
     private DemanderApprovisionnementResponse creerNouveau(DemanderApprovisionnementRequest req) {
 
-        String groupe = req.getGroupeSanguin().value();
-        String composant = req.getComposant().value();
-        int quantite = req.getQuantite();
-        boolean critique = "CRITIQUE".equals(req.getUrgence().value());
+        // R10 — groupeSanguin, composant, urgence are JAXB enums (tns:GroupeSanguin,
+        // tns:Composant, tns:Urgence in XSD). .value() converts each to its String.
+        String groupe     = req.getGroupeSanguin().value();
+        String composant  = req.getComposant().value();
+        String urgenceStr = req.getUrgence().value();
+        int    quantite   = req.getQuantite();
+        boolean critique  = "CRITIQUE".equals(urgenceStr);
 
         // R14 — Try CRTS of the region first, then CNTS-TUNIS
         String crtsId = "CRTS-" + req.getRegion().toUpperCase();
@@ -65,7 +68,7 @@ public class ApprovisionnementService {
                     "Stock insuffisant pour " + groupe + "/" + composant + " (quantité=" + quantite + ")");
         }
 
-        // APP-YYYY-NNNNNN from seq_approvisionnement, same pattern as DN- and CERT-.
+        // APP-YYYY-NNNNNN from seq_approvisionnement
         String annee = String.valueOf(LocalDate.now().getYear());
         long seq = approRepo.nextSequenceValue();
         String reference = String.format("APP-%s-%06d", annee, seq);
@@ -86,7 +89,7 @@ public class ApprovisionnementService {
             approRepo.save(appro);
             return toResponse(appro);
         } catch (DataIntegrityViolationException e) {
-            // R18 — a concurrent retry inserted the same demandeId first.
+            // R18 — Concurrent duplicate insert: reload the existing record
             return approRepo.findByDemandeId(req.getDemandeId())
                     .map(this::toResponse)
                     .orElseThrow(() -> new StockCentralInsuffisantException(

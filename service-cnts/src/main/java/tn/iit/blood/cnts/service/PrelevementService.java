@@ -40,10 +40,12 @@ public class PrelevementService {
                     "Volume invalide : attendu " + volumeAttenu + " ml, reçu " + req.getVolumeMl() + " ml");
         }
 
-        // R10 — Blood group must be known (XSD enum enforced upstream by JAXB, extra guard)
+        // R10 — groupeSanguin is a JAXB enum (tns:GroupeSanguin in XSD).
+        // .value() converts it to String. null-check guards against unmarshalling edge cases.
         if (req.getGroupeSanguin() == null) {
-            throw new PrelevementInvalideException("Groupe sanguin inconnu");
+            throw new PrelevementInvalideException("Groupe sanguin inconnu ou invalide");
         }
+        String groupe = req.getGroupeSanguin().value();
 
         // Date must not be in the future
         LocalDate datePrelev = req.getDatePrelevement().toGregorianCalendar().toZonedDateTime()
@@ -60,7 +62,7 @@ public class PrelevementService {
         PrelevementDeclare p = new PrelevementDeclare();
         p.setNumeroDonNational(numeroDonNational);
         p.setDonIdLocal(req.getDonIdLocal());
-        p.setGroupeSanguin(req.getGroupeSanguin().value());
+        p.setGroupeSanguin(groupe);
         p.setVolumeMl(req.getVolumeMl());
         p.setCentreId(req.getCentreId());
         p.setDatePrelevement(datePrelev);
@@ -70,8 +72,7 @@ public class PrelevementService {
             prelevementRepo.save(p);
             return toResponse(p);
         } catch (DataIntegrityViolationException e) {
-            // R18 — Concurrent duplicate insert: another thread inserted the same donIdLocal
-            // just before us. Reload and return the existing record instead of failing.
+            // R18 — Concurrent duplicate insert: reload the existing record
             return prelevementRepo.findByDonIdLocal(req.getDonIdLocal())
                     .map(this::toResponse)
                     .orElseThrow(() -> new PrelevementInvalideException("Erreur inattendue lors de l'enregistrement"));
