@@ -27,7 +27,7 @@ public class Reservation {
     @Column(nullable = false)
     private int quantite;
 
-    /** RESERVEE_STOCK_LOCAL | APPROVISIONNEMENT_COMMANDE | STOCK_INSUFFISANT_PARTOUT | A_CONFIRMER | LIVREE */
+    /** RESERVEE_STOCK_LOCAL | APPROVISIONNEMENT_COMMANDE | STOCK_INSUFFISANT_PARTOUT | EN_ATTENTE_CONFIRMATION | LIVREE */
     @Column(nullable = false)
     private String statut;
 
