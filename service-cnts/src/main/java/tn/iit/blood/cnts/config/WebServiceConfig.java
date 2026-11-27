@@ -1,5 +1,6 @@
 package tn.iit.blood.cnts.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +14,7 @@ import org.springframework.ws.wsdl.wsdl11.DefaultWsdl11Definition;
 import org.springframework.ws.transport.http.MessageDispatcherServlet;
 import org.springframework.xml.xsd.SimpleXsdSchema;
 import org.springframework.xml.xsd.XsdSchema;
+import tn.iit.blood.cnts.ws.CntsSimulationInterceptor;
 
 import java.util.List;
 
@@ -29,14 +31,19 @@ import java.util.List;
 @Configuration
 public class WebServiceConfig implements WsConfigurer {
 
+    /** S5-09 — Injecté pour être enregistré après le validateur XSD. */
+    @Autowired
+    private CntsSimulationInterceptor simulationInterceptor;
+
     /**
-     * S5-08 — Enregistre le PayloadValidatingInterceptor pour toutes les opérations.
-     * Les requêtes malformées (groupe inconnu, champ manquant) sont rejetées ici
-     * avant d'atteindre CntsEndpoint.
+     * S5-08 — PayloadValidatingInterceptor (XSD) enregistré en premier.
+     * S5-09 — CntsSimulationInterceptor enregistré ensuite :
+     *          la validation passe avant la simulation.
      */
     @Override
     public void addInterceptors(List<EndpointInterceptor> interceptors) {
         interceptors.add(payloadValidatingInterceptor());
+        interceptors.add(simulationInterceptor);
     }
 
     /**
