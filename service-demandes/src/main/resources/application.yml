@@ -1,28 +1,111 @@
 server:
   port: ${SERVER_PORT:8082}
+  shutdown: graceful
 
 spring:
+  application:
+    name: service-demandes
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5435/demandes}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:0000}
+    hikari:
+      connection-timeout: 3000
+
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+    open-in-view: false
     show-sql: false
-  flyway:
-    enabled: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        type:
+          preferred_instant_jdbc_type: TIMESTAMP
 
+  flyway:
+    enabled: true
+
+  # Async SSE : Spring MVC doit pouvoir écrire en mode asynchrone
+  mvc:
+    async:
+      request-timeout: -1   # infini pour les SseEmitter
+
+# ─────────────────────────────────────────────────────────────
+# Paramètres métier et clients (toutes les valeurs sont des
+# variables d'environnement avec une valeur par défaut).
+# ─────────────────────────────────────────────────────────────
 demandes:
   compensation-min: ${COMPENSATION_MIN:2}
   compensation-max: ${COMPENSATION_MAX:3}
   grpc-deadline-ms: ${GRPC_DEADLINE_MS:2000}
   retry-jobs-interval-sec: ${RETRY_JOBS_INTERVAL_SEC:60}
-  don-stock-grpc-target: ${DON_STOCK_GRPC_TARGET:static://service-don-stock:9090}
+  don-stock-grpc-target: ${DON_STOCK_GRPC_TARGET:service-don-stock:9090}
   donneurs-url: ${DONNEURS_URL:http://service-donneurs:8081}
 
+# ─────────────────────────────────────────────────────────────
+# Resilience4j — disjoncteur donStock (partagé avec Donneurs et Don & Stock)
+# Configuration de référence S6-09.
+# ─────────────────────────────────────────────────────────────
+resilience4j:
+  circuitbreaker:
+    instances:
+      donStock:
+        # Fenêtre glissante sur les 10 derniers appels
+        sliding-window-size: 10
+        # Le taux d'échec n'est calculé qu'après 5 appels minimum
+        minimum-number-of-calls: 5
+        # Ouvre le disjoncteur si ≥ 50 % des appels échouent
+        failure-rate-threshold: 50
+        # Reste ouvert 10 s avant de passer en HALF_OPEN
+        wait-duration-in-open-state: 10s
+        # Autorise 3 appels tests en HALF_OPEN
+        permitted-number-of-calls-in-half-open-state: 3
+        # Passage automatique OPEN → HALF_OPEN (pas besoin d'un appel manuel)
+        automatic-transition-from-open-to-half-open-enabled: true
+        # Les exceptions suivantes comptent comme des échecs
+        record-exceptions:
+          - com.service_demandes.client.DonStockIndisponibleException
+          - io.grpc.StatusRuntimeException
+          - java.net.ConnectException
+          - java.util.concurrent.TimeoutException
+
+      donneurs:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 15s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - com.service_demandes.client.DonneursClient$DonneursIndisponibleException
+          - java.net.ConnectException
+          - java.util.concurrent.TimeoutException
+
+# ─────────────────────────────────────────────────────────────
+# Actuator
+# ─────────────────────────────────────────────────────────────
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        # health : Docker healthcheck et Gateway
+        # circuitbreakers : démo D6 (état du disjoncteur en live)
+        # info : optionnel mais utile
+        include: health,info,circuitbreakers
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+
+# ─────────────────────────────────────────────────────────────
+# OpenAPI / Swagger
+# ─────────────────────────────────────────────────────────────
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

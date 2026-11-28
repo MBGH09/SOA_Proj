@@ -21,41 +21,77 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Endpoints REST pour les demandes de sang des hôpitaux.
+ *
+ * <table border="1">
+ *   <tr><th>Méthode</th><th>Chemin</th><th>Codes</th><th>Description</th></tr>
+ *   <tr><td>POST</td>  <td>/api/v1/demandes</td>       <td>201, 202, 400</td><td>Crée une demande et tente la réservation</td></tr>
+ *   <tr><td>GET</td>   <td>/api/v1/demandes</td>       <td>200</td>          <td>Liste avec filtres optionnels</td></tr>
+ *   <tr><td>GET</td>   <td>/api/v1/demandes/{id}</td>  <td>200, 404</td>     <td>Lit une demande</td></tr>
+ *   <tr><td>PATCH</td> <td>/api/v1/demandes/{id}</td>  <td>200, 400, 404, 409</td><td>Annule ou corrige compensationRecue</td></tr>
+ * </table>
+ */
 @RestController
 @RequestMapping("/api/v1/demandes")
 public class DemandeController {
 
-    private final DemandeService service;
+    private final DemandeService demandeService;
 
-    public DemandeController(DemandeService service) {
-        this.service = service;
+    public DemandeController(DemandeService demandeService) {
+        this.demandeService = demandeService;
     }
 
     /**
-     * 201 si le sang est reserve tout de suite (SATISFAITE), 202 dans tous les autres cas
-     * (approvisionnement, penurie, Don & Stock indisponible). 400 est gere par GlobalExceptionHandler.
+     * Crée une demande et tente immédiatement la réservation dans service-don-stock.
+     * <ul>
+     *   <li>201 si le sang est réservé localement (SATISFAITE).</li>
+     *   <li>202 si la demande est en attente d'approvisionnement, en pénurie,
+     *       ou si Don & Stock est temporairement injoignable.</li>
+     *   <li>400 si les données sont invalides (géré par {@code GlobalExceptionHandler}).</li>
+     * </ul>
      */
     @PostMapping
-    public ResponseEntity<DemandeResponse> creer(@Valid @RequestBody CreateDemandeRequest requete) {
-        Demande demande = service.creer(requete);
-        HttpStatus status = demande.getStatut() == StatutDemande.SATISFAITE ? HttpStatus.CREATED : HttpStatus.ACCEPTED;
-        return ResponseEntity.status(status).body(DemandeResponse.from(demande));
+    public ResponseEntity<DemandeResponse> creer(@Valid @RequestBody CreateDemandeRequest corps) {
+        Demande demandeCreee = demandeService.creer(corps);
+        HttpStatus codeHttp = choisirCodeHttpCreation(demandeCreee.getStatut());
+        return ResponseEntity.status(codeHttp).body(DemandeResponse.from(demandeCreee));
     }
 
+    private HttpStatus choisirCodeHttpCreation(StatutDemande statut) {
+        return statut == StatutDemande.SATISFAITE ? HttpStatus.CREATED : HttpStatus.ACCEPTED;
+    }
+
+    /**
+     * Liste les demandes. Les deux filtres sont optionnels et combinables.
+     *
+     * @param filtreStatut    filtre par statut (ex: {@code EN_ATTENTE}, {@code SATISFAITE})
+     * @param filtreHopitalId filtre par identifiant d'hôpital
+     */
     @GetMapping
-    public List<DemandeResponse> lister(@RequestParam(required = false) StatutDemande statut,
-                                        @RequestParam(required = false) String hopitalId) {
-        return service.lister(statut, hopitalId).stream().map(DemandeResponse::from).toList();
+    public List<DemandeResponse> lister(
+            @RequestParam(required = false) StatutDemande filtreStatut,
+            @RequestParam(name = "hopitalId", required = false) String filtreHopitalId) {
+        return demandeService.lister(filtreStatut, filtreHopitalId)
+                .stream()
+                .map(DemandeResponse::from)
+                .toList();
     }
 
     @GetMapping("/{id}")
     public DemandeResponse lire(@PathVariable UUID id) {
-        return DemandeResponse.from(service.lire(id));
+        return DemandeResponse.from(demandeService.lire(id));
     }
 
-    /** Annulation (statut ANNULEE) ou correction manuelle de compensationRecue. */
+    /**
+     * Annule une demande ouverte ({@code statut = ANNULEE})
+     * et/ou corrige le compteur {@code compensationRecue} à la main
+     * (repli quand service-donneurs est injoignable).
+     */
     @PatchMapping("/{id}")
-    public DemandeResponse modifier(@PathVariable UUID id, @Valid @RequestBody ModifierDemandeRequest requete) {
-        return DemandeResponse.from(service.modifier(id, requete));
+    public DemandeResponse modifier(
+            @PathVariable UUID id,
+            @Valid @RequestBody ModifierDemandeRequest corps) {
+        return DemandeResponse.from(demandeService.modifier(id, corps));
     }
 }
